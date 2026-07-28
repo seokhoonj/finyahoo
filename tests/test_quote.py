@@ -1,0 +1,67 @@
+"""Yahoo quote-parsing tests that need no network.
+
+The fixtures cover what the record shape decides: bare numbers (not ``{raw}``
+boxes), the name fallback chain, a missing field reading as None, and the error
+envelope.
+"""
+
+import pytest
+
+from pyyahoo import Quote, YahooParseError, YahooRequestError, parse_quotes
+
+_TWO = """
+{"quoteResponse": {"error": null, "result": [
+  {"symbol": "AAPL", "longName": "Apple Inc.", "quoteType": "EQUITY", "currency": "USD",
+   "fullExchangeName": "NasdaqGS", "marketState": "REGULAR",
+   "regularMarketPrice": 339.25, "regularMarketPreviousClose": 335.0,
+   "regularMarketChange": 4.25, "regularMarketChangePercent": 1.27,
+   "regularMarketVolume": 41234567, "marketCap": 4900000000000,
+   "trailingPE": 34.2, "regularMarketTime": 1785441600},
+  {"symbol": "005930.KS", "shortName": "Samsung Elec", "currency": "KRW",
+   "regularMarketPrice": 71000}
+]}}
+"""
+
+_ERROR = '{"quoteResponse": {"result": null, "error": {"code": "Bad Request", "description": "nope"}}}'
+
+
+def test_parses_each_symbol_in_order():
+    quotes = parse_quotes(_TWO)
+    assert isinstance(quotes[0], Quote)
+    assert [q.symbol for q in quotes] == ["AAPL", "005930.KS"]
+
+
+def test_bare_numbers_are_read_directly_not_unwrapped():
+    apple = parse_quotes(_TWO)[0]
+    assert apple.price == pytest.approx(339.25)
+    assert apple.change_percent == pytest.approx(1.27)
+    assert apple.market_cap == 4900000000000
+
+
+def test_name_falls_back_from_long_to_short():
+    quotes = parse_quotes(_TWO)
+    assert quotes[0].name == "Apple Inc."          # longName
+    assert quotes[1].name == "Samsung Elec"        # shortName, no longName
+
+
+def test_a_missing_field_is_none_not_zero():
+    samsung = parse_quotes(_TWO)[1]
+    assert samsung.trailing_pe is None
+    assert samsung.volume is None
+    assert samsung.market_cap is None
+
+
+def test_epoch_market_time_becomes_a_datetime():
+    from datetime import datetime
+    apple = parse_quotes(_TWO)[0]
+    assert isinstance(apple.market_time, datetime)
+
+
+def test_error_envelope_raises_request_error():
+    with pytest.raises(YahooRequestError):
+        parse_quotes(_ERROR)
+
+
+def test_non_quote_shape_raises_parse_error():
+    with pytest.raises(YahooParseError):
+        parse_quotes('{"unexpected": "shape"}')

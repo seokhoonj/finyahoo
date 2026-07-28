@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyyahoo"
+version = "0.1.0"
+description = "Read prices and fundamentals from Yahoo Finance's undocumented endpoints through one typed client."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Seokhoon Joo", email = "seokhoonj@gmail.com" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+# One runtime dependency, and it is load-bearing: Yahoo gates these endpoints on
+# the client's TLS fingerprint, not a header, so reaching them needs a client that
+# presents a browser handshake. curl_cffi is that client; a plain urllib/requests
+# call gets 429 where this succeeds.
+dependencies = ["curl_cffi>=0.15"]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyyahoo"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# Line length is a formatter concern, not a lint failure: the parsing code aligns
+# parallel-array reads and dataclass construction on purpose, and a hard E501 would
+# fight that alignment. `ruff format` reflows what it can; the rest stays readable.
+ignore = ["E501"]
+
+[tool.ruff.format]
+# The parallel-array parsing and aligned dataclass construction are laid out on
+# purpose; the formatter would collapse that alignment, so formatting stays
+# advisory here.
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests"]
+strict = true
+
+# Tests get the real checks but not the annotation ceremony: `-> None` on every
+# test function is noise. The package itself is strict without exception -- it is
+# the part with a contract.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+check_untyped_defs = true
