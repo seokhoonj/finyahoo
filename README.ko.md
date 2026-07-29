@@ -61,7 +61,7 @@ pip install pyyahoo
 
 Python 3.11 이상이 필요합니다.
 
-## 명령줄
+## 터미널
 
 패키지를 설치하면 `pyyahoo` 명령이 PATH에 등록됩니다 (`python -m pyyahoo`로도 실행).
 
@@ -75,7 +75,7 @@ pyyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
 두 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다.
 `pyyahoo history --help` / `pyyahoo profile --help`로 옵션을 확인하세요.
 
-## AI 코딩 에이전트에서 쓰기
+## AI 코딩 에이전트에서 사용
 
 이 저장소는 Claude Code·Codex용 플러그인 마켓플레이스도 겸합니다 — `history`·`profile`을
 `pyyahoo` 명령을 호출하는 스킬로 제공합니다. 먼저 위에서 패키지를 설치하세요(키·로그인
