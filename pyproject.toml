@@ -35,6 +35,11 @@ dev = [
     "ruff>=0.6",
 ]
 
+# The CLI is stdlib-only (argparse + json), so it adds no runtime dependency -- the
+# reusable check asserts curl_cffi stays the only one.
+[project.scripts]
+pyyahoo = "pyyahoo.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pyyahoo"]
 

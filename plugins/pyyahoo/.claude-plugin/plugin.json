@@ -1,0 +1,11 @@
+{
+  "name": "pyyahoo",
+  "displayName": "pyyahoo",
+  "description": "Read Yahoo Finance prices and fundamentals from the command line, powered by the pyyahoo CLI",
+  "version": "0.1.0",
+  "author": { "name": "seokhoonj" },
+  "homepage": "https://github.com/seokhoonj/pyyahoo",
+  "repository": "https://github.com/seokhoonj/pyyahoo",
+  "license": "MIT",
+  "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals"]
+}

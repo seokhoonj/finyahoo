@@ -1,0 +1,17 @@
+{
+  "name": "pyyahoo",
+  "owner": { "name": "seokhoonj" },
+  "description": "Read prices and fundamentals from Yahoo Finance",
+  "plugins": [
+    {
+      "name": "pyyahoo",
+      "displayName": "pyyahoo",
+      "source": "./plugins/pyyahoo",
+      "description": "Read prices and fundamentals from Yahoo Finance",
+      "author": { "name": "seokhoonj" },
+      "homepage": "https://github.com/seokhoonj/pyyahoo",
+      "category": "Productivity",
+      "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals"]
+    }
+  ]
+}
