@@ -5,6 +5,8 @@ into one flat object. The fixtures cover those leaves being read, a whole branch
 being absent (fields None, no AttributeError), and a horizon Yahoo nulls.
 """
 
+import json
+
 import pytest
 
 from finyahoo import InsightReport, Insights, YahooParseError, YahooRequestError
@@ -54,6 +56,20 @@ def test_reads_technical_levels_and_outlooks():
 
 def test_a_nulled_horizon_is_none():
     assert parse_insights(_FULL, "AAPL").mid_term_outlook is None
+
+
+@pytest.mark.parametrize("field", ["instrumentInfo", "companySnapshot"])
+def test_a_non_object_optional_branch_is_treated_as_absent(field):
+    """A branch that drifts to a non-dict reads as absent fields, not an
+    AttributeError past the documented YahooParseError contract."""
+    payload = json.loads(_FULL)
+    payload["finance"]["result"][field] = "drift"
+    ins = parse_insights(json.dumps(payload), "AAPL")
+    assert isinstance(ins, Insights)
+    if field == "companySnapshot":
+        assert ins.sector is None
+    else:
+        assert ins.target_price is None and ins.support is None
 
 
 def test_reports_are_parsed_with_dates():

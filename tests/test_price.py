@@ -137,6 +137,26 @@ def test_events_are_absent_not_an_error_when_none_occurred():
     assert history.splits == () and history.dividends == ()
 
 
+@pytest.mark.parametrize("field", ["meta", "events"])
+def test_a_non_object_optional_chart_branch_is_treated_as_absent(field):
+    """A meta/events branch that drifts to a non-dict reads as absent fields, not an
+    AttributeError past the documented YahooParseError contract."""
+    payload = json.loads(_KST)
+    payload["chart"]["result"][0][field] = "drift"
+    history = parse_history(json.dumps(payload), "005930.KS")
+    assert isinstance(history, PriceHistory)
+    if field == "events":
+        assert history.splits == () and history.dividends == ()
+
+
+def test_a_non_object_splits_branch_is_treated_as_absent():
+    """The inner splits node drifting to a non-dict reads as no splits, not a crash."""
+    payload = json.loads(_KST)
+    payload["chart"]["result"][0]["events"]["splits"] = "drift"
+    history = parse_history(json.dumps(payload), "005930.KS")
+    assert history.splits == ()
+
+
 def test_a_delisted_ticker_is_a_request_error_carrying_yahoos_words():
     with pytest.raises(YahooRequestError) as excinfo:
         parse_history(_NOT_FOUND, "042670.KS")

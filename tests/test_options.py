@@ -66,6 +66,15 @@ def test_a_missing_contract_field_is_none():
     assert sparse_call.is_in_the_money is False     # present and false, not None
 
 
+def test_a_non_boolean_in_the_money_reads_as_none():
+    """inTheMoney is Yahoo's flag; a value that drifts to a string (or a boxed number)
+    is not a real bool, so it reads as None rather than a coerced True."""
+    payload = ('{"optionChain": {"error": null, "result": [{"underlyingSymbol": "AAPL", '
+               '"options": [{"expirationDate": 1735084800, '
+               '"calls": [{"contractSymbol": "X", "inTheMoney": "true"}], "puts": []}]}]}}')
+    assert parse_options(payload).calls[0].is_in_the_money is None
+
+
 def test_error_envelope_raises_request_error():
     with pytest.raises(YahooRequestError):
         parse_options(_ERROR)

@@ -434,18 +434,25 @@ class YahooClient:
 
 
 def _as_date(value: str | date | None) -> date | None:
-    """A date from a ``date`` or an ISO ``YYYY-MM-DD`` string, or None.
+    """A date from a ``date`` or an ISO date string (``YYYY-MM-DD``), or None.
 
     Accepting the string spares the caller a ``datetime`` import for the common
-    case. A malformed string is a caller bug, raised as ``ValueError`` at the
-    boundary rather than silently mis-parsed; a ``date`` passes through unchanged.
+    case. A ``datetime`` collapses to its calendar day -- its time and tzinfo are
+    dropped, since these endpoints key on a trading day, not an instant -- so it is
+    normalized here rather than left to compare unequally against a plain ``date``.
+    A malformed string is a caller bug, raised as ``ValueError`` at the boundary
+    rather than silently mis-parsed.
     """
-    if value is None or isinstance(value, date):
+    if value is None:
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
         return value
     try:
         return date.fromisoformat(value)
     except ValueError as err:
-        raise ValueError(f"date must be a date or an ISO 'YYYY-MM-DD' string, got {value!r}") from err
+        raise ValueError(f"date must be a date or an ISO date string, got {value!r}") from err
 
 
 def _to_epoch(day: date) -> int:

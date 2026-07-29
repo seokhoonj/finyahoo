@@ -7,7 +7,7 @@ and the session close. The HTTP session -- the one external boundary -- is faked
 and the sleep is captured so nothing waits.
 """
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import pytest
@@ -227,8 +227,34 @@ def test_history_accepts_an_iso_date_string_like_a_date():
 def test_a_malformed_date_string_is_a_value_error():
     """A bad date string is a caller bug caught at the boundary, not sent to Yahoo
     as a mis-parsed range."""
-    with pytest.raises(ValueError, match="YYYY-MM-DD"):
+    with pytest.raises(ValueError, match="ISO date"):
         _client(_FakeSession()).fetch_history("MU", start="2020-13-01")
+
+
+def test_history_treats_a_datetime_as_its_calendar_date():
+    """A datetime is a date subclass, so it is accepted and collapses to its calendar
+    day; the time is dropped, reaching the same period2 as the bare date."""
+    session = _FakeSession(_FakeResponse(200, _CHART_EMPTY))
+    _client(session).fetch_history("MU", end=datetime(2020, 1, 15, 23, 59))
+    assert session.calls[-1]["params"]["period2"] == 1_579_132_800
+
+
+def test_fetch_timeseries_also_accepts_an_iso_date_string():
+    """The string-date support is on the shared boundary helper, so a second endpoint
+    accepts it too; end='2020-01-15' reaches the same inclusive period2 as the date."""
+    session = _FakeSession(_FakeResponse(200, _TIMESERIES_JSON))
+    _client(session).fetch_timeseries("AAPL", ["annualTotalRevenue"], end="2020-01-15")
+    assert session.calls[-1]["params"]["period2"] == 1_579_132_800
+
+
+def test_close_is_idempotent():
+    """close() is safe to call more than once: the finalizer is detached on the first
+    call and curl_cffi's own close() tolerates a repeat."""
+    session = _FakeSession()
+    client = _client(session)
+    client.close()
+    client.close()
+    assert session.closed
 
 
 def test_fetch_timeseries_end_none_sends_now_not_the_open_end_sentinel(monkeypatch):
