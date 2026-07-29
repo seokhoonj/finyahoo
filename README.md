@@ -41,7 +41,20 @@ market suffix (`005930.KS` KOSPI, `.KQ` KOSDAQ), an index is caret-prefixed
 (`^GSPC`). A delisted or unknown ticker raises `YahooRequestError`, not an empty
 result.
 
-## 3. Methods
+## 3. Client options
+
+`YahooClient` takes two optional keyword-only settings:
+
+| argument | default | what it does |
+|---|---|---|
+| `timeout` | `30.0` | per-request timeout, in seconds |
+| `delay_seconds` | `0.5` | pause between consecutive requests; raise it if reading many symbols in a row runs into rate limits |
+
+```python
+yahoo = YahooClient(timeout=10, delay_seconds=1.0)
+```
+
+## 4. Methods
 
 | method | returns |
 |---|---|
@@ -65,19 +78,6 @@ result.
 - `fetch_profile` — a `Profile`: the company's current fundamentals (sector, size,
   valuation, growth, margins). A snapshot as of now, not history; every numeric
   field is optional and a missing one is `None`, never `0`.
-
-## 4. Client options
-
-`YahooClient` takes two optional keyword-only settings:
-
-| argument | default | what it does |
-|---|---|---|
-| `timeout` | `30.0` | per-request timeout, in seconds |
-| `delay_seconds` | `0.5` | pause between consecutive requests; raise it if reading many symbols in a row runs into rate limits |
-
-```python
-yahoo = YahooClient(timeout=10, delay_seconds=1.0)
-```
 
 ## 5. DataFrames
 

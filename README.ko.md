@@ -39,7 +39,20 @@ print(profile.sector, profile.market_cap, profile.trailing_pe)
 코스피, `.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`)를 씁니다. 폐지·미상 티커는 빈 결과가
 아니라 `YahooRequestError`를 냅니다.
 
-## 3. 메서드
+## 3. 클라이언트 옵션
+
+`YahooClient`는 두 개의 선택 설정을 받습니다(둘 다 키워드 전용):
+
+| 인자 | 기본값 | 하는 일 |
+|---|---|---|
+| `timeout` | `30.0` | 요청당 제한 시간(초) |
+| `delay_seconds` | `0.5` | 연속 요청 사이의 간격; 여러 심볼을 잇달아 읽다가 요청 제한에 걸리면 늘리세요 |
+
+```python
+yahoo = YahooClient(timeout=10, delay_seconds=1.0)
+```
+
+## 4. 메서드
 
 | 메서드 | 반환 |
 |---|---|
@@ -62,19 +75,6 @@ print(profile.sector, profile.market_cap, profile.trailing_pe)
 - `fetch_profile` — `Profile`: 기업의 현재 펀더멘털(섹터·규모·밸류에이션·성장·마진)
   입니다. 이력이 아니라 지금 시점의 스냅샷이며, 모든 수치 필드는 선택적이라 없는 값은
   `0`이 아니라 `None`입니다.
-
-## 4. 클라이언트 옵션
-
-`YahooClient`는 두 개의 선택 설정을 받습니다(둘 다 키워드 전용):
-
-| 인자 | 기본값 | 하는 일 |
-|---|---|---|
-| `timeout` | `30.0` | 요청당 제한 시간(초) |
-| `delay_seconds` | `0.5` | 연속 요청 사이의 간격; 여러 심볼을 잇달아 읽다가 요청 제한에 걸리면 늘리세요 |
-
-```python
-yahoo = YahooClient(timeout=10, delay_seconds=1.0)
-```
 
 ## 5. 데이터프레임
 
