@@ -54,6 +54,17 @@ with YahooClient() as yahoo:
 코스피, `.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`)를 씁니다. 폐지·미상 티커는 빈 결과가
 아니라 `YahooRequestError`를 냅니다.
 
+## 클라이언트 옵션
+
+```python
+with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
+    ...
+```
+
+`timeout`은 요청당 제한 시간(초)이고, `delay_seconds`는 연속 요청 사이의 간격으로
+여러 심볼을 잇달아 읽을 때 도움이 됩니다. `with` 블록 밖에서 쓸 때는 끝난 뒤
+`yahoo.close()`를 호출하세요.
+
 ## 데이터프레임
 
 결과를 pandas·polars로 바로 표(DataFrame)로 만들 수 있습니다:

@@ -38,7 +38,7 @@ from enum import Enum
 from typing import Any
 
 from .errors import YahooParseError
-from .payload import first_dict, is_number, unwrap_result
+from .payload import dict_or_empty, first_dict, is_number, unwrap_result
 
 
 class Timeframe(Enum):
@@ -120,7 +120,7 @@ def parse_history(payload: str, symbol: str) -> PriceHistory:
         YahooParseError: the payload is not JSON, or not the chart shape.
     """
     result = first_dict(unwrap_result(payload, "chart", "chart", symbol), "chart")
-    offset = timedelta(seconds=_int_or_zero((result.get("meta") or {}).get("gmtoffset")))
+    offset = timedelta(seconds=_int_or_zero(dict_or_empty(result.get("meta")).get("gmtoffset")))
     return PriceHistory(
         symbol    = symbol,
         bars      = _parse_bars(result, offset),
@@ -168,7 +168,7 @@ def _parse_bars(result: dict[str, Any], offset: timedelta) -> tuple[PriceBar, ..
 
 
 def _parse_splits(result: dict[str, Any], offset: timedelta) -> tuple[Split, ...]:
-    events = (result.get("events") or {}).get("splits", {})
+    events = dict_or_empty(dict_or_empty(result.get("events")).get("splits"))
     try:
         splits = [
             Split(ex_date     = _local_date(event["date"], offset),
@@ -182,7 +182,7 @@ def _parse_splits(result: dict[str, Any], offset: timedelta) -> tuple[Split, ...
 
 
 def _parse_dividends(result: dict[str, Any], offset: timedelta) -> tuple[Dividend, ...]:
-    events = (result.get("events") or {}).get("dividends", {})
+    events = dict_or_empty(dict_or_empty(result.get("events")).get("dividends"))
     try:
         dividends = [
             Dividend(ex_date=_local_date(event["date"], offset), per_share=float(event["amount"]))

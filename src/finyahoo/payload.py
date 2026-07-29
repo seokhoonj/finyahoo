@@ -111,6 +111,25 @@ def as_number(value: object) -> float | None:
     return value if is_number(value) else None
 
 
+def as_bool(value: object) -> bool | None:
+    """A bare boolean field, or None when it is absent or not a real bool.
+
+    The boolean counterpart to ``as_number``: a JSON string or number drifting into a
+    field typed ``bool | None`` is rejected rather than silently stored.
+    """
+    return value if isinstance(value, bool) else None
+
+
+def dict_or_empty(node: object) -> dict[str, Any]:
+    """``node`` if it is a dict, else an empty one.
+
+    A missing branch (``None``) *or* one that drifted to a non-dict reads as absent
+    fields, so an optional nested node cannot raise ``AttributeError`` from a later
+    ``.get()`` past the documented ``YahooParseError`` contract.
+    """
+    return node if isinstance(node, dict) else {}
+
+
 def unwrap_raw(node: object) -> float | None:
     """The number inside a ``{"raw": ..}`` box, or None.
 

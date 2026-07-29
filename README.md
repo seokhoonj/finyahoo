@@ -57,9 +57,20 @@ market suffix (`005930.KS` KOSPI, `.KQ` KOSDAQ), an index is caret-prefixed
 (`^GSPC`). A delisted or unknown ticker raises `YahooRequestError`, not an empty
 result.
 
+## Client options
+
+```python
+with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
+    ...
+```
+
+`timeout` is the per-request timeout in seconds; `delay_seconds` spaces consecutive
+requests, which helps when reading many symbols in a row. Outside a `with` block,
+call `yahoo.close()` when done.
+
 ## DataFrames
 
-Every result is a dataclass, so pandas or polars tabulates it directly:
+Every result record is a dataclass, so pandas or polars tabulates it directly:
 
 ```python
 import pandas as pd

@@ -14,10 +14,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
 
 from .errors import YahooParseError
-from .payload import as_number, each_dict, iso_to_date, unwrap_result
+from .payload import as_number, dict_or_empty, each_dict, iso_to_date, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,12 +65,12 @@ def parse_insights(payload: str, symbol: str) -> Insights:
     result = unwrap_result(payload, "finance", "insights", symbol)
     if not isinstance(result, dict):
         raise YahooParseError(f"insights result for {symbol} is not an object: {type(result).__name__}")
-    info = _dict_or_empty(result.get("instrumentInfo"))
-    recommendation = _dict_or_empty(info.get("recommendation"))
-    valuation = _dict_or_empty(info.get("valuation"))
-    technicals = _dict_or_empty(info.get("keyTechnicals"))
-    events = _dict_or_empty(info.get("technicalEvents"))
-    snapshot = _dict_or_empty(result.get("companySnapshot"))
+    info = dict_or_empty(result.get("instrumentInfo"))
+    recommendation = dict_or_empty(info.get("recommendation"))
+    valuation = dict_or_empty(info.get("valuation"))
+    technicals = dict_or_empty(info.get("keyTechnicals"))
+    events = dict_or_empty(info.get("technicalEvents"))
+    snapshot = dict_or_empty(result.get("companySnapshot"))
     return Insights(
         symbol             = result.get("symbol", symbol),
         target_price       = as_number(recommendation.get("targetPrice")),
@@ -97,17 +96,11 @@ def parse_insights(payload: str, symbol: str) -> Insights:
     )
 
 
-def _dict_or_empty(node: object) -> dict[str, Any]:
-    """``node`` if it is a dict, else an empty one -- so a missing branch reads as
-    absent fields rather than an AttributeError."""
-    return node if isinstance(node, dict) else {}
-
-
 def _direction(outlook: object) -> str | None:
     """The state description of one horizon's outlook, or None when absent.
 
     Yahoo nulls a horizon it has no read on, and otherwise carries a
     ``stateDescription`` ("Bullish", "Bearish", ...) that is the one useful leaf.
     """
-    state = _dict_or_empty(outlook).get("stateDescription")
+    state = dict_or_empty(outlook).get("stateDescription")
     return state if isinstance(state, str) else None

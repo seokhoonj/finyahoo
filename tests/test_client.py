@@ -65,7 +65,7 @@ class _FakeSession:
         self.closed = False
 
     def get(self, url, params=None, timeout=None):
-        self.calls.append({"url": url, "params": params})
+        self.calls.append({"url": url, "params": params, "timeout": timeout})
         item = self.responses.pop(0)
         if isinstance(item, Exception):
             raise item
@@ -148,6 +148,35 @@ def test_context_manager_closes_on_exit():
     with _client(session):
         pass
     assert session.closed
+
+
+def test_the_session_impersonates_chrome(monkeypatch):
+    """The client only gets past Yahoo's TLS gating because the session presents
+    Chrome's handshake; a plain session is fingerprinted and blocked. This is the
+    one setting the whole package depends on, so it is asserted, not assumed."""
+    seen: dict[str, Any] = {}
+
+    class _SpySession:
+        def __init__(self, *, impersonate=None):
+            seen["impersonate"] = impersonate
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(cffi_requests, "Session", _SpySession)
+    YahooClient().close()
+    assert seen["impersonate"] == "chrome"
+
+
+def test_a_request_forwards_the_configured_timeout():
+    """A per-request timeout set on the client reaches the underlying call, not just
+    the constructor -- a timeout nothing passes through is a silent no-op."""
+    session = _FakeSession(_FakeResponse(429, "blocked"))
+    client = YahooClient(timeout=7.5, delay_seconds=0)
+    client._session = session  # type: ignore[assignment]  # a fake stands in for the HTTP session
+    with pytest.raises(YahooBlockedError):
+        client.fetch_history("MU")
+    assert session.calls[-1]["timeout"] == pytest.approx(7.5)
 
 
 def test_history_with_start_after_end_is_a_value_error():
