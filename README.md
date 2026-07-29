@@ -29,21 +29,18 @@ with YahooClient() as yahoo:
 
 ## What one client reaches
 
-| method | endpoint | crumb | returns |
-|---|---|:--:|---|
-| `fetch_history(symbol, *, start, end, timeframe)` | chart | | `PriceHistory` — OHLCV bars + `Split`/`Dividend` events |
-| `fetch_profile(symbol)` | quoteSummary | ✓ | `Profile` — current fundamentals snapshot |
-| `fetch_quotes(symbols)` | quote | ✓ | `tuple[Quote]` — live snapshot per symbol |
-| `fetch_search(query, *, quotes_count, news_count)` | search | | `Search` — symbol matches + related news |
-| `fetch_timeseries(symbol, metric_types, *, start, end)` | timeseries | | `tuple[FinancialSeries]` — dated financial line items |
-| `fetch_spark(symbols, *, period, interval)` | spark | | `tuple[Spark]` — compact close series per symbol |
-| `fetch_options(symbol, *, expiration)` | options | ✓ | `OptionChain` — calls/puts for one expiration |
-| `fetch_recommendations(symbol)` | recommendationsbysymbol | | `tuple[Recommendation]` — similar symbols |
-| `fetch_insights(symbol)` | insights | ✓ | `Insights` — analyst target, valuation, outlooks, reports |
-| `fetch_screener(screen_id, *, page_size)` | screener/predefined | ✓ | `Screen` — a predefined screen's members (as `Quote`s) |
-
-The crumb (a session token Yahoo requires on some endpoints) is minted and
-re-minted for you.
+| method | returns |
+|---|---|
+| `fetch_history(symbol, *, start, end, timeframe)` | `PriceHistory` — OHLCV bars + `Split`/`Dividend` events |
+| `fetch_profile(symbol)` | `Profile` — current fundamentals snapshot |
+| `fetch_quotes(symbols)` | `tuple[Quote]` — live snapshot per symbol |
+| `fetch_search(query, *, quotes_count, news_count)` | `Search` — symbol matches + related news |
+| `fetch_timeseries(symbol, metric_types, *, start, end)` | `tuple[FinancialSeries]` — dated financial line items |
+| `fetch_spark(symbols, *, period, interval)` | `tuple[Spark]` — compact close series per symbol |
+| `fetch_options(symbol, *, expiration)` | `OptionChain` — calls/puts for one expiration |
+| `fetch_recommendations(symbol)` | `tuple[Recommendation]` — similar symbols |
+| `fetch_insights(symbol)` | `Insights` — analyst target, valuation, outlooks, reports |
+| `fetch_screener(screen_id, *, page_size)` | `Screen` — a predefined screen's members (as `Quote`s) |
 
 ### The two core reads
 

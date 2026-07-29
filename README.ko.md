@@ -29,20 +29,18 @@ with YahooClient() as yahoo:
 
 ## 하나의 클라이언트가 닿는 곳
 
-| 메서드 | 엔드포인트 | crumb | 반환 |
-|---|---|:--:|---|
-| `fetch_history(symbol, *, start, end, timeframe)` | chart | | `PriceHistory` — OHLCV 봉 + `Split`/`Dividend` 이벤트 |
-| `fetch_profile(symbol)` | quoteSummary | ✓ | `Profile` — 현재 펀더멘털 스냅샷 |
-| `fetch_quotes(symbols)` | quote | ✓ | `tuple[Quote]` — 종목별 실시간 스냅샷 |
-| `fetch_search(query, *, quotes_count, news_count)` | search | | `Search` — 종목 매칭 + 관련 뉴스 |
-| `fetch_timeseries(symbol, metric_types, *, start, end)` | timeseries | | `tuple[FinancialSeries]` — 날짜 있는 재무 항목 |
-| `fetch_spark(symbols, *, period, interval)` | spark | | `tuple[Spark]` — 종목별 간이 종가 시계열 |
-| `fetch_options(symbol, *, expiration)` | options | ✓ | `OptionChain` — 한 만기의 콜/풋 |
-| `fetch_recommendations(symbol)` | recommendationsbysymbol | | `tuple[Recommendation]` — 유사 종목 |
-| `fetch_insights(symbol)` | insights | ✓ | `Insights` — 목표가·밸류에이션·전망·리포트 |
-| `fetch_screener(screen_id, *, page_size)` | screener/predefined | ✓ | `Screen` — 사전정의 스크린 구성종목(`Quote`) |
-
-crumb(Yahoo가 일부 엔드포인트에서 요구하는 세션 토큰)는 자동으로 발급·재발급된다.
+| 메서드 | 반환 |
+|---|---|
+| `fetch_history(symbol, *, start, end, timeframe)` | `PriceHistory` — OHLCV 봉 + `Split`/`Dividend` 이벤트 |
+| `fetch_profile(symbol)` | `Profile` — 현재 펀더멘털 스냅샷 |
+| `fetch_quotes(symbols)` | `tuple[Quote]` — 종목별 실시간 스냅샷 |
+| `fetch_search(query, *, quotes_count, news_count)` | `Search` — 종목 매칭 + 관련 뉴스 |
+| `fetch_timeseries(symbol, metric_types, *, start, end)` | `tuple[FinancialSeries]` — 날짜 있는 재무 항목 |
+| `fetch_spark(symbols, *, period, interval)` | `tuple[Spark]` — 종목별 간이 종가 시계열 |
+| `fetch_options(symbol, *, expiration)` | `OptionChain` — 한 만기의 콜/풋 |
+| `fetch_recommendations(symbol)` | `tuple[Recommendation]` — 유사 종목 |
+| `fetch_insights(symbol)` | `Insights` — 목표가·밸류에이션·전망·리포트 |
+| `fetch_screener(screen_id, *, page_size)` | `Screen` — 사전정의 스크린 구성종목(`Quote`) |
 
 ### 핵심 두 가지
 
