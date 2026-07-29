@@ -7,10 +7,11 @@
 
 **English** | [한국어](README.ko.md)
 
-Read prices and fundamentals from Yahoo Finance through one typed client.
+Read prices and fundamentals from Yahoo Finance.
 
-OHLCV history, live quotes, fundamentals, options, and screeners — one client
-reaches them all, each returned as a typed result.
+Daily, weekly, and monthly open/high/low/close and volume, the adjusted close,
+dividends and splits, company fundamentals (sector, market cap, valuation, ...),
+live quotes, options, and screeners.
 
 ```python
 from datetime import date
@@ -18,8 +19,9 @@ from pyyahoo import YahooClient
 
 with YahooClient() as yahoo:
     history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
-    print(history.bars[-1])        # PriceBar(trade_date=..., close=..., adj_close=..., volume=...)
-    print(history.splits)          # (Split(ex_date=..., numerator=..., denominator=...), ...)
+    latest = history.bars[-1]
+    print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
+    print(len(history.splits), "splits,", len(history.dividends), "dividends")
 
     profile = yahoo.fetch_profile("AAPL")
     print(profile.sector, profile.market_cap, profile.trailing_pe)
@@ -54,6 +56,23 @@ Symbols are Yahoo tickers: a US stock is bare (`AAPL`), a Korean one carries the
 market suffix (`005930.KS` KOSPI, `.KQ` KOSDAQ), an index is caret-prefixed
 (`^GSPC`). A delisted or unknown ticker raises `YahooRequestError`, not an empty
 result.
+
+## DataFrames
+
+Every result is a dataclass, so pandas or polars tabulates it directly:
+
+```python
+import pandas as pd
+prices = pd.DataFrame(history.bars).set_index("trade_date")
+```
+
+```python
+import polars as pl
+prices = pl.DataFrame(history.bars)
+```
+
+The same works for `history.splits`, `history.dividends`, a screen's `members`, or a
+`fetch_quotes(...)` result.
 
 ## Install
 

@@ -18,8 +18,9 @@ from pyyahoo import YahooClient
 
 with YahooClient() as yahoo:
     history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
-    print(history.bars[-1])        # PriceBar(trade_date=..., close=..., adj_close=..., volume=...)
-    print(history.splits)          # (Split(ex_date=..., numerator=..., denominator=...), ...)
+    latest = history.bars[-1]
+    print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
+    print(len(history.splits), "splits,", len(history.dividends), "dividends")
 
     profile = yahoo.fetch_profile("AAPL")
     print(profile.sector, profile.market_cap, profile.trailing_pe)
@@ -52,6 +53,22 @@ with YahooClient() as yahoo:
 심볼은 Yahoo 티커입니다: 미국주는 그대로(`AAPL`), 한국주는 시장 접미사(`005930.KS`
 코스피, `.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`)를 씁니다. 폐지·미상 티커는 빈 결과가
 아니라 `YahooRequestError`를 냅니다.
+
+## 데이터프레임
+
+결과를 pandas·polars로 바로 표(DataFrame)로 만들 수 있습니다:
+
+```python
+import pandas as pd
+prices = pd.DataFrame(history.bars).set_index("trade_date")
+```
+
+```python
+import polars as pl
+prices = pl.DataFrame(history.bars)
+```
+
+`history.splits`·`history.dividends`, 스크린의 `members`, `fetch_quotes(...)` 결과도 같은 방식입니다.
 
 ## 설치
 
