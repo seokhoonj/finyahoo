@@ -146,15 +146,16 @@ class YahooClient:
         self,
         symbol: str,
         *,
-        start: date | None = None,
-        end: date | None = None,
+        start: str | date | None = None,
+        end: str | date | None = None,
         timeframe: Timeframe = Timeframe.DAY,
     ) -> PriceHistory:
         """Fetch ``symbol``'s bars and corporate actions in [``start``, ``end``].
 
         ``symbol`` is a Yahoo ticker: a US stock is bare (``MU``), a Korean one
         carries the market suffix (``005930.KS`` KOSPI, ``.KQ`` KOSDAQ), an index
-        is caret-prefixed (``^GSPC``). Both bounds are inclusive and both default
+        is caret-prefixed (``^GSPC``). ``start`` and ``end`` each take a ``date`` or
+        an ISO ``YYYY-MM-DD`` string. Both bounds are inclusive and both default
         to the widest available window -- ``start`` to Yahoo's earliest bar,
         ``end`` to the latest. Both are interpreted at UTC midnight of the given
         day; for an exchange whose local session opens before UTC midnight this can
@@ -165,11 +166,14 @@ class YahooClient:
         not an empty result, because Yahoo distinguishes the two.
 
         Raises:
-            ValueError: ``start`` is after ``end`` (a caller bug).
+            ValueError: ``start`` is after ``end``, or a date string is not ISO
+                ``YYYY-MM-DD`` (both caller bugs).
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed, or the symbol has no data.
             YahooParseError: the payload was not the chart shape.
         """
+        start = _as_date(start)
+        end = _as_date(end)
         if start is not None and end is not None and start > end:
             raise ValueError(f"start {start} is after end {end}")
         payload = self._get(_CHART_URL.format(symbol=quote(symbol, safe="")), params={
@@ -250,8 +254,8 @@ class YahooClient:
         return parse_spark(text)
 
     def fetch_timeseries(self, symbol: str, metric_types: str | Sequence[str], *,
-                         start: date | None = None,
-                         end: date | None = None) -> tuple[FinancialSeries, ...]:
+                         start: str | date | None = None,
+                         end: str | date | None = None) -> tuple[FinancialSeries, ...]:
         """Fetch dated financial line items for ``symbol``.
 
         ``metric_types`` are Yahoo's own line-item names (``annualTotalRevenue``,
@@ -261,12 +265,14 @@ class YahooClient:
         history. Needs no crumb.
 
         Raises:
-            ValueError: ``metric_types`` is empty, or ``start`` is after ``end``
-                (both caller bugs).
+            ValueError: ``metric_types`` is empty, ``start`` is after ``end``, or a
+                date string is not ISO ``YYYY-MM-DD`` (all caller bugs).
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the timeseries shape.
         """
+        start = _as_date(start)
+        end = _as_date(end)
         if start is not None and end is not None and start > end:
             raise ValueError(f"start {start} is after end {end}")
         # Unlike the chart endpoint, timeseries rejects the 9999999999 open-end
@@ -281,19 +287,23 @@ class YahooClient:
         }).text
         return parse_timeseries(text, symbol)
 
-    def fetch_options(self, symbol: str, *, expiration: date | None = None) -> OptionChain:
+    def fetch_options(self, symbol: str, *,
+                      expiration: str | date | None = None) -> OptionChain:
         """Fetch ``symbol``'s option chain for one expiration.
 
-        With no ``expiration`` Yahoo returns the nearest one; the full list of
-        available expirations rides on the result either way. Needs a crumb.
+        ``expiration`` takes a ``date`` or an ISO ``YYYY-MM-DD`` string. With none,
+        Yahoo returns the nearest one; the full list of available expirations rides
+        on the result either way. Needs a crumb.
 
         Raises:
+            ValueError: ``expiration`` is a string that is not ISO ``YYYY-MM-DD``.
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed, or the symbol is unknown.
             YahooParseError: the payload was not the optionChain shape.
         """
         url = _OPTIONS_URL.format(symbol=quote(symbol, safe=""))
-        params = {} if expiration is None else {"date": _to_epoch(expiration)}
+        expiry = _as_date(expiration)
+        params = {} if expiry is None else {"date": _to_epoch(expiry)}
         return parse_options(self._get_crumbed(url, params))
 
     def fetch_recommendations(self, symbol: str) -> tuple[Recommendation, ...]:
@@ -421,6 +431,21 @@ class YahooClient:
         if now < self._next_request_at:
             time.sleep(self._next_request_at - now)
         self._next_request_at = time.monotonic() + self.delay_seconds
+
+
+def _as_date(value: str | date | None) -> date | None:
+    """A date from a ``date`` or an ISO ``YYYY-MM-DD`` string, or None.
+
+    Accepting the string spares the caller a ``datetime`` import for the common
+    case. A malformed string is a caller bug, raised as ``ValueError`` at the
+    boundary rather than silently mis-parsed; a ``date`` passes through unchanged.
+    """
+    if value is None or isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(value)
+    except ValueError as err:
+        raise ValueError(f"date must be a date or an ISO 'YYYY-MM-DD' string, got {value!r}") from err
 
 
 def _to_epoch(day: date) -> int:

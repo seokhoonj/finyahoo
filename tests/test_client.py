@@ -216,6 +216,21 @@ def test_history_end_is_inclusive_via_the_next_days_start():
     assert session.calls[-1]["params"]["period2"] == 1_579_132_800
 
 
+def test_history_accepts_an_iso_date_string_like_a_date():
+    """A bound may be an ISO 'YYYY-MM-DD' string, so a caller need not import
+    datetime; end='2020-01-15' must reach the same period2 the date object produces."""
+    session = _FakeSession(_FakeResponse(200, _CHART_EMPTY))
+    _client(session).fetch_history("MU", end="2020-01-15")
+    assert session.calls[-1]["params"]["period2"] == 1_579_132_800
+
+
+def test_a_malformed_date_string_is_a_value_error():
+    """A bad date string is a caller bug caught at the boundary, not sent to Yahoo
+    as a mis-parsed range."""
+    with pytest.raises(ValueError, match="YYYY-MM-DD"):
+        _client(_FakeSession()).fetch_history("MU", start="2020-13-01")
+
+
 def test_fetch_timeseries_end_none_sends_now_not_the_open_end_sentinel(monkeypatch):
     """Regression: timeseries rejects the 9999999999 open-end sentinel (returns zero
     points), so an open-ended request must send the current time instead."""

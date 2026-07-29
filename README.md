@@ -24,11 +24,10 @@ Requires Python 3.11+.
 ## 2. Quickstart
 
 ```python
-from datetime import date
 from finyahoo import YahooClient
 
 yahoo = YahooClient()
-history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
+history = yahoo.fetch_history("AAPL", start="2020-01-01")
 latest = history.bars[-1]
 print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
 print(len(history.splits), "splits,", len(history.dividends), "dividends")
