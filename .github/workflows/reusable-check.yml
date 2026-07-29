@@ -82,8 +82,9 @@ jobs:
           cat > /tmp/user_code.py <<'PY'
           from finyahoo import YahooClient
 
-          # start is typed date | None; a string is neither.
-          YahooClient().fetch_history("AAPL", start="2020-01-01")
+          # start takes str | date | None; an int is none of those, so a checker
+          # that can see the shipped hints must reject it and name the expected type.
+          YahooClient().fetch_history("AAPL", start=123)
           PY
           /tmp/typed/bin/mypy /tmp/user_code.py > /tmp/mypy_out 2>&1 || true
           cat /tmp/mypy_out
