@@ -187,3 +187,14 @@ def test_python_m_finyahoo_propagates_the_exit_code():
     is argparse's exit 2. End-to-end (subprocess), so the __main__ alias is exercised."""
     result = subprocess.run([sys.executable, "-m", "finyahoo"], capture_output=True)
     assert result.returncode == 2
+
+
+def test_version_flag_prints_the_version(capsys):
+    # `finyahoo --version` is a standard CLI expectation: argparse prints to stdout and
+    # exits 0. It is wired at the top level, before the required subcommand.
+    import finyahoo
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--version"])
+    assert exc.value.code == 0
+    assert finyahoo.__version__ in capsys.readouterr().out

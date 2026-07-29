@@ -18,6 +18,7 @@ import sys
 from collections.abc import Callable, Sequence
 from datetime import date
 
+from . import __version__
 from .client import YahooClient
 from .errors import YahooError
 from .price import PriceHistory, Timeframe
@@ -56,6 +57,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="finyahoo", description="Read Yahoo Finance from the command line.")
+    parser.add_argument("--version", action="version", version=f"finyahoo {__version__}")
     commands = parser.add_subparsers(required=True)
 
     history = commands.add_parser(

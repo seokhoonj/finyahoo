@@ -27,6 +27,8 @@ endpoints answer 429.
     ...     profile = yahoo.fetch_profile("AAPL")
 """
 
+from importlib.metadata import PackageNotFoundError, version
+
 from .client import YahooClient
 from .errors import (
     YahooBlockedError,
@@ -80,3 +82,8 @@ __all__ = [
     "YahooParseError",
     "YahooRequestError",
 ]
+
+try:
+    __version__ = version("finyahoo")
+except PackageNotFoundError:   # running from a source tree with no install
+    __version__ = "0.0.0+unknown"

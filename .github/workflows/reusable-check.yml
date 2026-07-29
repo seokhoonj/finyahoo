@@ -72,6 +72,9 @@ jobs:
           import finyahoo
           print('finyahoo imports with only curl_cffi present')
           "
+          # The console script runs, and its top-level --version prints (not shoved
+          # into a required subcommand).
+          /tmp/bare/bin/finyahoo --version
 
       - name: Confirm a user's type checker can see the hints
         # Every hint in this package is invisible to a user unless py.typed ships
