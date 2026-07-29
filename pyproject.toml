@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "finyahoo"
-version = "0.1.1"
+version = "0.2.0"
 description = "Read prices, fundamentals, quotes, options, and news from Yahoo Finance."
 readme = "README.md"
 # Upper bound tracks the tested/classified range: curl_cffi ships no cp314 wheel yet,

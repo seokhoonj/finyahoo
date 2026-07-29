@@ -105,16 +105,20 @@ finyahoo history AAPL --start 2024-01-01  # OHLCV bars + split/dividend events
 finyahoo history ^GSPC --timeframe week   # weekly bars for an index
 finyahoo profile AAPL                     # current fundamentals
 finyahoo profile 005930.KS --json         # full snapshot as JSON
+finyahoo quote MU NVDA 005930.KS          # live snapshot per symbol (watchlist table)
+finyahoo quote AAPL                       # one symbol: the full snapshot
 ```
 
-Both subcommands print a readable summary by default and the full result with
-`--json`; `finyahoo history --help` / `finyahoo profile --help` list the flags.
+Each subcommand prints a readable summary by default and the full result with `--json`;
+`--help` on any of them (`finyahoo quote --help`) lists the flags. `quote` takes one or
+more symbols -- one prints the full snapshot, several a compact `SYMBOL PRICE CHG% STATE`
+table.
 
 ## 7. Use it from an AI coding agent
 
 This repo doubles as a plugin marketplace for Claude Code and Codex, exposing
-`history` and `profile` as skills that shell out to the `finyahoo` command — so
-install the package first (above); no key or login is involved.
+`history`, `profile`, and `quote` as skills that shell out to the `finyahoo` command —
+so install the package first (above); no key or login is involved.
 
 ### 7.1. Claude Code
 
@@ -123,8 +127,9 @@ install the package first (above); no key or login is involved.
 /plugin install finyahoo@finyahoo
 ```
 
-Then ask in plain words ("show AAPL's profile"), or invoke a skill explicitly —
-`/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`.
+Then ask in plain words ("show AAPL's profile", "what's MU trading at?"), or invoke a
+skill explicitly — `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`,
+`/finyahoo:quote MU NVDA`.
 
 ### 7.2. Codex
 
@@ -133,8 +138,8 @@ codex plugin marketplace add seokhoonj/finyahoo
 codex plugin add finyahoo@finyahoo
 ```
 
-The `history` / `profile` skills trigger on a symbol, or run `finyahoo history <symbol>`
-directly.
+The `history` / `profile` / `quote` skills trigger on a symbol, or run
+`finyahoo quote <symbol>` directly.
 
 Prefer no plugin? Symlink a skill into your skills directory and call it bare (`/history`):
 

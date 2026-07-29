@@ -1,6 +1,6 @@
 {
   "name": "finyahoo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Read Yahoo Finance prices and fundamentals from the command line, powered by the finyahoo CLI",
   "author": { "name": "seokhoonj", "url": "https://github.com/seokhoonj" },
   "homepage": "https://github.com/seokhoonj/finyahoo",
@@ -11,10 +11,10 @@
   "interface": {
     "displayName": "finyahoo",
     "shortDescription": "Read Yahoo Finance prices and fundamentals",
-    "longDescription": "Fetch a symbol's OHLCV price history or its current fundamentals snapshot from Yahoo Finance via the finyahoo CLI. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC).",
+    "longDescription": "Fetch a symbol's OHLCV price history, its current fundamentals snapshot, or a live price quote from Yahoo Finance via the finyahoo CLI. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC).",
     "developerName": "seokhoonj",
     "category": "Productivity",
     "capabilities": [],
-    "defaultPrompt": ["Get the price history for AAPL", "Show the profile for ^GSPC"]
+    "defaultPrompt": ["Get the price history for AAPL", "Show the profile for ^GSPC", "What's MU trading at?"]
   }
 }

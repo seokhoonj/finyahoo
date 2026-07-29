@@ -101,16 +101,19 @@ finyahoo history AAPL --start 2024-01-01  # OHLCV 봉 + 분할/배당 이벤트
 finyahoo history ^GSPC --timeframe week   # 지수의 주봉
 finyahoo profile AAPL                     # 현재 펀더멘털
 finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
+finyahoo quote MU NVDA 005930.KS          # 종목별 실시간 스냅샷 (워치리스트 표)
+finyahoo quote AAPL                       # 한 종목: 전체 스냅샷
 ```
 
-두 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다.
-`finyahoo history --help` / `finyahoo profile --help`로 옵션을 확인하세요.
+각 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다. 어느 것이든
+`--help`(`finyahoo quote --help`)로 옵션을 확인하세요. `quote`는 심볼을 하나 이상 받는데,
+하나면 전체 스냅샷, 여러 개면 `SYMBOL PRICE CHG% STATE` 좁은 표로 냅니다.
 
 ## 7. AI 코딩 에이전트에서 사용
 
-이 저장소는 Claude Code·Codex용 플러그인 마켓플레이스도 겸합니다 — `history`·`profile`을
-`finyahoo` 명령을 호출하는 스킬로 제공합니다. 먼저 위에서 패키지를 설치하세요(키·로그인
-불필요).
+이 저장소는 Claude Code·Codex용 플러그인 마켓플레이스도 겸합니다 —
+`history`·`profile`·`quote`를 `finyahoo` 명령을 호출하는 스킬로 제공합니다. 먼저 위에서
+패키지를 설치하세요(키·로그인 불필요).
 
 ### 7.1. Claude Code
 
@@ -119,8 +122,8 @@ finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
 /plugin install finyahoo@finyahoo
 ```
 
-그런 다음 평범하게 물어보거나("AAPL 프로파일 보여줘"), 스킬을 직접 호출하세요 —
-`/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`.
+그런 다음 평범하게 물어보거나("AAPL 프로파일 보여줘", "MU 지금 얼마야?"), 스킬을 직접
+호출하세요 — `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`, `/finyahoo:quote MU NVDA`.
 
 ### 7.2. Codex
 
@@ -129,8 +132,8 @@ codex plugin marketplace add seokhoonj/finyahoo
 codex plugin add finyahoo@finyahoo
 ```
 
-`history`·`profile` 스킬은 심볼에 반응하며, `finyahoo history <symbol>`로 직접 실행해도
-됩니다.
+`history`·`profile`·`quote` 스킬은 심볼에 반응하며, `finyahoo quote <symbol>`로 직접
+실행해도 됩니다.
 
 플러그인 없이 쓰려면? 스킬을 스킬 디렉터리에 symlink해 bare 형식(`/history`)으로 부르세요:
 

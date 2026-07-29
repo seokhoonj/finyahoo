@@ -8,11 +8,11 @@ failure becomes `finyahoo: ...` on stderr and exit 1), and argparse's own guards
 import json
 import subprocess
 import sys
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 
-from finyahoo import Timeframe, YahooRequestError
+from finyahoo import Quote, Timeframe, YahooRequestError
 from finyahoo.cli import main
 from finyahoo.price import Dividend, PriceBar, PriceHistory, Split
 from finyahoo.profile import Profile
@@ -39,13 +39,38 @@ _PROFILE = Profile(
 )
 
 
+def _quote(symbol, price, change_percent, *, name=None, currency="USD",
+           market_state="REGULAR"):
+    """A Quote with the display fields set and the rest None -- enough to pin the
+    renderers without hand-writing all 27 fields per case."""
+    return Quote(
+        symbol=symbol, name=name, quote_type="EQUITY", currency=currency,
+        exchange="NasdaqGS", market_state=market_state, price=price,
+        previous_close=None, change=None, change_percent=change_percent,
+        day_open=None, day_high=None, day_low=None, volume=None, market_cap=None,
+        shares_outstanding=None, fifty_two_week_high=None, fifty_two_week_low=None,
+        fifty_day_average=None, two_hundred_day_average=None, trailing_pe=None,
+        forward_pe=None, price_to_book=None, trailing_eps=None, forward_eps=None,
+        dividend_yield=None,
+        market_time=datetime(2026, 7, 29, 17, 13, 27, tzinfo=UTC),
+    )
+
+
+_QUOTES = (
+    _quote("MU", 783.0, -4.57, name="Micron Technology, Inc."),
+    _quote("005930.KS", 208_500.0, -5.23, name="Samsung Electronics Co., Ltd.",
+           currency="KRW", market_state="PREPRE"),
+)
+
+
 class _FakeYahoo:
     """Stands in for YahooClient: a context manager returning canned results, or
     raising a scripted error from the fetch methods."""
 
-    def __init__(self, *, history=None, profile=None, error=None):
+    def __init__(self, *, history=None, profile=None, quotes=None, error=None):
         self._history = history
         self._profile = profile
+        self._quotes = quotes
         self._error = error
 
     def __enter__(self):
@@ -63,6 +88,11 @@ class _FakeYahoo:
         if self._error is not None:
             raise self._error
         return self._profile
+
+    def fetch_quotes(self, *args, **kwargs):
+        if self._error is not None:
+            raise self._error
+        return self._quotes
 
 
 def _install_fake_yahoo_client(monkeypatch, **kwargs):
@@ -107,6 +137,59 @@ def test_profile_json_carries_every_field(monkeypatch, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["name"] == "Apple Inc."
     assert payload["beta"] is None              # JSON keeps the full shape, Nones included
+
+
+def test_quote_single_symbol_shows_aligned_fields_and_skips_none(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, quotes=(_QUOTES[0],))
+    assert main(["quote", "MU"]) == 0
+    out = capsys.readouterr().out
+    assert "symbol" in out and "MU" in out
+    assert "price" in out and "783" in out
+    assert "market_state" in out and "REGULAR" in out
+    assert "previous_close" not in out           # a None field is not printed
+
+
+def test_quote_multiple_symbols_render_a_table(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, quotes=_QUOTES)
+    assert main(["quote", "MU", "005930.KS"]) == 0
+    out = capsys.readouterr().out
+    assert out.splitlines()[0].split() == ["SYMBOL", "PRICE", "CHG%", "STATE"]
+    assert "208,500.00" in out                   # KRW price carries thousands separators
+    assert "-4.57%" in out and "-5.23%" in out   # change is signed
+    assert "PREPRE" in out                       # market state per row
+
+
+def test_quote_json_is_a_list_keeping_the_full_shape(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, quotes=(_QUOTES[0],))
+    assert main(["quote", "MU", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert isinstance(payload, list) and len(payload) == 1
+    assert payload[0]["symbol"] == "MU"
+    assert payload[0]["previous_close"] is None                  # Nones kept in JSON
+    assert payload[0]["market_time"] == "2026-07-29T17:13:27+00:00"   # datetime as ISO
+
+
+def test_quote_forwards_every_symbol(monkeypatch):
+    """All symbols reach fetch_quotes, in order -- a dropped ticker would ship green."""
+    calls = []
+
+    class _Recorder(_FakeYahoo):
+        def fetch_quotes(self, symbols):
+            calls.append(symbols)
+            return _QUOTES
+
+    monkeypatch.setattr("finyahoo.cli.YahooClient",
+                        lambda *a, **k: _Recorder(quotes=_QUOTES))
+    assert main(["quote", "MU", "NVDA", "005930.KS"]) == 0
+    assert calls == [["MU", "NVDA", "005930.KS"]]
+
+
+def test_quote_with_no_matches_says_so(monkeypatch, capsys):
+    """An all-unknown request is a legitimately empty result, not an error; the text
+    view says so rather than printing a blank line."""
+    _install_fake_yahoo_client(monkeypatch, quotes=())
+    assert main(["quote", "NOSUCH"]) == 0
+    assert "no quotes" in capsys.readouterr().out
 
 
 def test_a_domain_error_is_one_line_on_stderr_and_exit_1(monkeypatch, capsys):

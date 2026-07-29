@@ -1,4 +1,4 @@
-"""Command-line shell over ``YahooClient`` -- ``finyahoo history`` / ``finyahoo profile``.
+"""Command-line shell over ``YahooClient`` -- ``finyahoo history`` / ``profile`` / ``quote``.
 
 The shell over the shell: it parses ``argv``, runs one library read, and renders the
 typed result as text (or ``--json``). All data-shape knowledge stays in the library --
@@ -7,6 +7,7 @@ single runtime dependency (``curl_cffi``) is not widened by having a CLI.
 
     $ finyahoo history AAPL --start 2024-01-01
     $ finyahoo profile ^GSPC --json
+    $ finyahoo quote MU NVDA 005930.KS
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from .client import YahooClient
 from .errors import YahooError
 from .price import PriceHistory, Timeframe
 from .profile import Profile
+from .quote import Quote
 
 # The CLI's --timeframe words, mapped to the library enum. Kept as words so the flag
 # reads (day/week/month), not Yahoo's raw 1d/1wk/1mo.
@@ -78,6 +80,13 @@ def _make_parser() -> argparse.ArgumentParser:
     profile.add_argument("--json", action="store_true", help="emit JSON instead of text")
     profile.set_defaults(run=_run_profile)
 
+    quote = commands.add_parser(
+        "quote", help="live price snapshot for one or more symbols")
+    quote.add_argument("symbols", nargs="+",
+                       help="one or more Yahoo tickers (MU NVDA 005930.KS)")
+    quote.add_argument("--json", action="store_true", help="emit JSON instead of text")
+    quote.set_defaults(run=_run_quote)
+
     return parser
 
 
@@ -97,10 +106,23 @@ def _run_profile(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_quote(args: argparse.Namespace) -> int:
+    with YahooClient() as yahoo:
+        quotes = yahoo.fetch_quotes(args.symbols)
+    print(_quotes_to_json(quotes) if args.json else _render_quotes(quotes))
+    return 0
+
+
 def _to_json(result: PriceHistory | Profile) -> str:
     """A frozen result dataclass as indented JSON, dates rendered as ISO strings."""
     return json.dumps(dataclasses.asdict(result), default=_json_default,
                       ensure_ascii=False, indent=2)
+
+
+def _quotes_to_json(quotes: tuple[Quote, ...]) -> str:
+    """A quote per symbol as a JSON array, datetimes rendered as ISO strings."""
+    return json.dumps([dataclasses.asdict(quote) for quote in quotes],
+                      default=_json_default, ensure_ascii=False, indent=2)
 
 
 def _json_default(value: object) -> str:
@@ -130,15 +152,52 @@ def _render_history(history: PriceHistory) -> str:
 
 
 def _render_profile(profile: Profile) -> str:
-    """Every populated field as aligned ``name: value``; absent (None) fields are skipped
+    """Every populated field as aligned ``name  value``; absent (None) fields are skipped
     so an index -- which carries only a few -- does not print a wall of dashes."""
-    present = [(field.name, getattr(profile, field.name))
-               for field in dataclasses.fields(profile)
-               if getattr(profile, field.name) is not None]
+    return _aligned_fields(profile)
+
+
+def _aligned_fields(record: Profile | Quote) -> str:
+    """A dataclass's populated fields as aligned ``name  value`` lines, one per line;
+    None fields are skipped so a sparse record does not print a wall of dashes."""
+    present = [(field.name, getattr(record, field.name))
+               for field in dataclasses.fields(record)
+               if getattr(record, field.name) is not None]
     # symbol is always present, so `present` is never empty; default=0 keeps the
     # width computation safe rather than leaning on that invariant.
     width = max((len(name) for name, _ in present), default=0)
     return "\n".join(f"{name:<{width}}  {value}" for name, value in present)
+
+
+def _render_quotes(quotes: tuple[Quote, ...]) -> str:
+    """One symbol -> its full snapshot as aligned fields; many -> a watchlist table.
+
+    The layout follows the count: a single quote is read in depth (every populated
+    field, like a profile), while a basket is scanned across (price, change, and
+    market state per row), which stays narrow no matter how many symbols.
+    """
+    if not quotes:
+        return "  (no quotes for the requested symbols)"
+    if len(quotes) == 1:
+        return _aligned_fields(quotes[0])
+    return _render_quote_table(quotes)
+
+
+def _render_quote_table(quotes: tuple[Quote, ...]) -> str:
+    """One row per symbol -- symbol, price, change, market state -- with each column
+    sized to its widest cell. The full per-symbol detail is the single-symbol view or
+    ``--json``; a None price or change renders as a dash, not a zero."""
+    header = ("SYMBOL", "PRICE", "CHG%", "STATE")
+    rows = [header]
+    for quote in quotes:
+        price = "-" if quote.price is None else f"{quote.price:,.2f}"
+        change = "-" if quote.change_percent is None else f"{quote.change_percent:+.2f}%"
+        rows.append((quote.symbol, price, change, quote.market_state or "-"))
+    width = [max(len(row[col]) for row in rows) for col in range(len(header))]
+    return "\n".join(
+        f"{row[0]:<{width[0]}}  {row[1]:>{width[1]}}  "
+        f"{row[2]:>{width[2]}}  {row[3]:<{width[3]}}"
+        for row in rows)
 
 
 if __name__ == "__main__":
