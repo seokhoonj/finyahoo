@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .payload import unwrap_result
+from .payload import each_dict, first_dict, unwrap_raw_int, unwrap_result
 from .quote import Quote, parse_quote_record
 
 
@@ -39,10 +39,13 @@ def parse_screener(payload: str) -> Screen:
         YahooRequestError: the response carries an ``error`` -- an unknown scrId.
         YahooParseError: the payload is not the screener shape.
     """
-    result = unwrap_result(payload, "finance", "screener", "the requested screen")[0]
+    result = first_dict(unwrap_result(payload, "finance", "screener", "the requested screen"),
+                        "screener")
     return Screen(
         screen_id = result.get("canonicalName", ""),
         title     = result.get("title"),
-        total     = result.get("total"),
-        members   = tuple(parse_quote_record(record) for record in result.get("quotes", [])),
+        total     = unwrap_raw_int(result.get("total")),
+        members   = tuple(
+            parse_quote_record(record) for record in each_dict(result.get("quotes", []), "screener")
+        ),
     )

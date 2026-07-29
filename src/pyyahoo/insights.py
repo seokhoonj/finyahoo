@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from .payload import iso_to_date, unwrap_result
+from .errors import YahooParseError
+from .payload import as_number, iso_to_date, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +64,8 @@ def parse_insights(payload: str, symbol: str) -> Insights:
         YahooParseError: the payload is not the insights shape.
     """
     result = unwrap_result(payload, "finance", "insights", symbol)
+    if not isinstance(result, dict):
+        raise YahooParseError(f"insights result for {symbol} is not an object: {type(result).__name__}")
     info = _dict_or_empty(result.get("instrumentInfo"))
     recommendation = _dict_or_empty(info.get("recommendation"))
     valuation = _dict_or_empty(info.get("valuation"))
@@ -71,12 +74,12 @@ def parse_insights(payload: str, symbol: str) -> Insights:
     snapshot = _dict_or_empty(result.get("companySnapshot"))
     return Insights(
         symbol             = result.get("symbol", symbol),
-        target_price       = recommendation.get("targetPrice"),
+        target_price       = as_number(recommendation.get("targetPrice")),
         rating             = recommendation.get("rating"),
         valuation          = valuation.get("description"),
-        support            = technicals.get("support"),
-        resistance         = technicals.get("resistance"),
-        stop_loss          = technicals.get("stopLoss"),
+        support            = as_number(technicals.get("support")),
+        resistance         = as_number(technicals.get("resistance")),
+        stop_loss          = as_number(technicals.get("stopLoss")),
         short_term_outlook = _direction(events.get("shortTerm")),
         mid_term_outlook   = _direction(events.get("midTerm")),
         long_term_outlook  = _direction(events.get("longTerm")),

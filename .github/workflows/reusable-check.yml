@@ -53,8 +53,8 @@ jobs:
         run: .venv/bin/mypy
 
       - name: Confirm the only runtime dependency is curl_cffi
-        # The one-dependency claim is in the README and the pyproject comment; a
-        # claim nothing checks quietly stops being true. Installed into a bare
+        # The one-dependency claim is documented in the pyproject comment; a claim
+        # nothing checks quietly stops being true. Installed into a bare
         # environment, pyyahoo must import with nothing beyond curl_cffi present.
         run: |
           uv venv /tmp/bare --python ${{ matrix.python-version }}

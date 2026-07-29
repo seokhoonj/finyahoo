@@ -3,7 +3,7 @@
 The fixtures cover what makes a dated line item right: one series per requested
 type, a value unboxed from ``reportedValue.raw`` and dated by ``asOfDate``, a
 padded null period dropped, and a type the symbol has no data for (a series with a
-``meta`` but no matching data key) skipped rather than surfaced empty.
+``meta`` but no matching data key) retained as an empty series rather than dropped.
 """
 
 from datetime import date
@@ -59,7 +59,7 @@ def test_parses_one_series_per_requested_type():
 def test_value_is_unboxed_and_dated_by_as_of_date():
     revenue = parse_timeseries(_TWO_TYPES, "AAPL")[0]
     assert revenue.points[0].as_of_date == date(2022, 9, 30)
-    assert revenue.points[0].value == pytest.approx(394328000000.0)
+    assert revenue.points[0].reported_value == pytest.approx(394328000000.0)
     assert revenue.points[0].currency == "USD"
 
 
@@ -82,6 +82,19 @@ def test_an_entry_with_no_readable_meta_type_raises_rather_than_dropping_silentl
     'this symbol has no financials'."""
     with pytest.raises(YahooParseError):
         parse_timeseries(_DRIFTED_META, "AAPL")
+
+
+def test_a_non_null_non_object_row_is_shape_drift_not_padding():
+    """A null row is Yahoo's padding for a missing period and is skipped; a non-null,
+    non-object row is drift and must raise, not be discarded like padding."""
+    drifted = """
+    {"timeseries": {"error": null, "result": [
+      {"meta": {"symbol": ["AAPL"], "type": ["annualTotalRevenue"]},
+       "annualTotalRevenue": ["not-an-object"]}
+    ]}}
+    """
+    with pytest.raises(YahooParseError):
+        parse_timeseries(drifted, "AAPL")
 
 
 def test_error_envelope_raises_request_error():

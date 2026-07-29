@@ -100,6 +100,16 @@ def test_a_bar_with_a_null_non_close_price_is_dropped_not_stored_with_none():
     assert [bar.trade_date for bar in history.bars] == [date(2018, 4, 27)]
 
 
+def test_a_priced_bar_with_null_volume_keeps_the_bar_with_volume_none():
+    """A settled bar whose volume Yahoo omitted (a halted session, some index feeds)
+    is kept -- volume is None, never 0, which is a real no-trade reading."""
+    payload = json.loads(_KST)
+    payload["chart"]["result"][0]["indicators"]["quote"][0]["volume"][2] = None
+    last = parse_history(json.dumps(payload), "005930.KS").bars[-1]
+    assert last.trade_date == date(2018, 5, 4)
+    assert last.volume is None
+
+
 def test_a_ragged_column_shorter_than_timestamps_raises_parse_error():
     """A quote column shorter than timestamp is a malformed payload, surfaced as a
     parse error rather than escaping as a bare IndexError past the contract."""

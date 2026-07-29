@@ -1,18 +1,20 @@
 """YahooClient network-shell tests with a fake session -- no real network.
 
 The pure parsers are tested elsewhere; this covers the shell's own logic, which is
-where a broken client would otherwise ship green: the crumb mint-and-retry, the
-429 block that must not be retried, and the session close. The session is faked
-(the one true boundary, per Ch 10.6) and the sleep is captured so nothing waits.
+where a broken client would otherwise ship green: URL and parameter routing, the
+crumb mint-and-retry, the 429 block that must not be retried, transient retries,
+and the session close. The HTTP session -- the one external boundary -- is faked
+and the sleep is captured so nothing waits.
 """
 
 from datetime import date
 from typing import Any
 
 import pytest
+from curl_cffi import requests as cffi_requests
 
 from pyyahoo import YahooBlockedError, YahooClient, YahooRequestError
-from pyyahoo.client import _ONE_DAY_SECONDS, _to_epoch
+from pyyahoo.client import _to_epoch
 
 # A minimal but valid quoteSummary payload the profile parser accepts.
 _PROFILE_JSON = """
@@ -34,6 +36,16 @@ _TIMESERIES_JSON = """
 }]}}
 """
 
+# Minimal but valid payloads for the remaining endpoints, so each fetch route's URL
+# and parameter wiring is covered, not only its parser.
+_SEARCH_JSON = '{"quotes": [{"symbol": "AAPL"}], "news": []}'
+_SPARK_JSON = '{"AAPL": {"timestamp": [1700000000], "close": [1.0], "chartPreviousClose": 0.9}}'
+_RECOMMEND_JSON = ('{"finance": {"error": null, "result": [{"symbol": "AAPL", '
+                   '"recommendedSymbols": [{"symbol": "MSFT", "score": 0.3}]}]}}')
+_INSIGHTS_JSON = '{"finance": {"error": null, "result": {"symbol": "AAPL", "instrumentInfo": {}}}}'
+_SCREENER_JSON = ('{"finance": {"error": null, "result": [{"canonicalName": "MOST_ACTIVES", '
+                  '"total": 10, "quotes": [{"symbol": "AAPL"}]}]}}')
+
 
 class _FakeResponse:
     def __init__(self, status_code: int = 200, text: str = "{}") -> None:
@@ -42,16 +54,23 @@ class _FakeResponse:
 
 
 class _FakeSession:
-    """Serves canned responses in order and records each call's params."""
+    """Serves canned responses in order and records each call's params.
 
-    def __init__(self, *responses: _FakeResponse) -> None:
+    A queued item that is an ``Exception`` is raised instead of returned, so a
+    transport error (a timeout) can be scripted alongside status responses.
+    """
+
+    def __init__(self, *responses: _FakeResponse | Exception) -> None:
         self.responses = list(responses)
         self.calls: list[dict[str, Any]] = []
         self.closed = False
 
     def get(self, url, params=None, timeout=None):
         self.calls.append({"url": url, "params": params})
-        return self.responses.pop(0)
+        item = self.responses.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
 
     def close(self) -> None:
         self.closed = True
@@ -140,10 +159,12 @@ def test_history_with_start_after_end_is_a_value_error():
 
 def test_history_end_is_inclusive_via_the_next_days_start():
     """Yahoo filters timestamp < period2 and a bar's timestamp is its session open,
-    so an inclusive end date must be sent as the start of the next day."""
+    so an inclusive end date must be sent as the start of the next day. The expected
+    value is the independently-known epoch of 2020-01-16 00:00 UTC, so a regression
+    in _to_epoch or _ONE_DAY_SECONDS cannot move both sides together."""
     session = _FakeSession(_FakeResponse(200, _CHART_EMPTY))
     _client(session).fetch_history("MU", end=date(2020, 1, 15))
-    assert session.calls[-1]["params"]["period2"] == _to_epoch(date(2020, 1, 15)) + _ONE_DAY_SECONDS
+    assert session.calls[-1]["params"]["period2"] == 1_579_132_800
 
 
 def test_fetch_timeseries_end_none_sends_now_not_the_open_end_sentinel(monkeypatch):
@@ -158,12 +179,32 @@ def test_fetch_timeseries_end_none_sends_now_not_the_open_end_sentinel(monkeypat
 
 
 def test_a_5xx_is_retried_then_succeeds(_no_sleep):
-    """A 500 is a transient glitch: retry with backoff and use the first good body."""
+    """A 500 is a transient glitch: retry with backoff and use the first good body.
+    The captured waits pin the backoff schedule, not just the count."""
     session = _FakeSession(
         _FakeResponse(500, ""), _FakeResponse(500, ""), _FakeResponse(200, _CHART_EMPTY))
     history = _client(session).fetch_history("MU")
     assert history.bars == ()
-    assert len(_no_sleep) == 2                 # two backoff waits between three attempts
+    assert _no_sleep == [2.0, 4.0]             # geometric backoff between three attempts
+
+
+def test_a_transport_error_is_retried_then_succeeds(_no_sleep):
+    """A timeout (RequestsError) is transient like a 5xx: retried with backoff, then
+    the first good body is used."""
+    session = _FakeSession(
+        cffi_requests.RequestsError("timeout"), _FakeResponse(200, _CHART_EMPTY))
+    history = _client(session).fetch_history("MU")
+    assert history.bars == ()
+    assert len(session.calls) == 2
+    assert _no_sleep == [2.0]
+
+
+def test_exhausted_transport_errors_raise_request_error():
+    session = _FakeSession(
+        cffi_requests.RequestsError("t"), cffi_requests.RequestsError("t"),
+        cffi_requests.RequestsError("t"))
+    with pytest.raises(YahooRequestError):
+        _client(session).fetch_history("MU")
 
 
 def test_exhausted_5xx_retries_raise_request_error():
@@ -188,6 +229,66 @@ def test_a_crumbed_endpoint_sends_the_crumb():
         _FakeResponse(200, _QUOTE_JSON))
     _client(session).fetch_quotes(["AAPL"])
     assert session.calls[-1]["params"]["crumb"] == "c"
+
+
+def test_fetch_quotes_with_one_symbol_string_is_not_split_into_letters():
+    """str satisfies Sequence[str], so an unguarded join would turn "AAPL" into
+    "A,A,P,L" and query the wrong symbols; one ticker must reach Yahoo intact."""
+    session = _FakeSession(
+        _FakeResponse(404, ""), _FakeResponse(200, "c"), _FakeResponse(200, _QUOTE_JSON))
+    _client(session).fetch_quotes("AAPL")
+    assert session.calls[-1]["params"]["symbols"] == "AAPL"
+
+
+def test_fetch_spark_routes_to_the_spark_url_with_range_and_interval():
+    session = _FakeSession(_FakeResponse(200, _SPARK_JSON))
+    sparks = _client(session).fetch_spark("AAPL", period="1y", interval="1wk")
+    call = session.calls[-1]
+    assert call["url"].endswith("/v8/finance/spark")
+    assert call["params"] == {"symbols": "AAPL", "range": "1y", "interval": "1wk"}
+    assert sparks[0].symbol == "AAPL"
+
+
+def test_fetch_search_routes_to_the_search_url_without_a_crumb():
+    session = _FakeSession(_FakeResponse(200, _SEARCH_JSON))
+    result = _client(session).fetch_search("apple")
+    call = session.calls[-1]
+    assert call["url"].endswith("/v1/finance/search")
+    assert call["params"]["q"] == "apple"
+    assert "crumb" not in call["params"]
+    assert result.matches[0].symbol == "AAPL"
+
+
+def test_fetch_recommendations_routes_to_the_recommend_url_without_a_crumb():
+    session = _FakeSession(_FakeResponse(200, _RECOMMEND_JSON))
+    recs = _client(session).fetch_recommendations("AAPL")
+    call = session.calls[-1]
+    assert "/v6/finance/recommendationsbysymbol/AAPL" in call["url"]
+    assert call["params"] is None                 # no query params, no crumb
+    assert recs[0].symbol == "MSFT"
+
+
+def test_fetch_insights_routes_through_the_crumb_path():
+    session = _FakeSession(
+        _FakeResponse(404, ""), _FakeResponse(200, "c"), _FakeResponse(200, _INSIGHTS_JSON))
+    insights = _client(session).fetch_insights("AAPL")
+    call = session.calls[-1]
+    assert call["url"].endswith("/ws/insights/v1/finance/insights")
+    assert call["params"]["symbol"] == "AAPL"
+    assert call["params"]["crumb"] == "c"
+    assert insights.symbol == "AAPL"
+
+
+def test_fetch_screener_sends_the_page_size_as_count_and_a_crumb():
+    session = _FakeSession(
+        _FakeResponse(404, ""), _FakeResponse(200, "c"), _FakeResponse(200, _SCREENER_JSON))
+    screen = _client(session).fetch_screener("most_actives", page_size=10)
+    call = session.calls[-1]
+    assert call["url"].endswith("/v1/finance/screener/predefined/saved")
+    assert call["params"]["scrIds"] == "most_actives"
+    assert call["params"]["count"] == 10
+    assert call["params"]["crumb"] == "c"
+    assert screen.total == 10
 
 
 def test_fetch_options_sends_a_date_only_when_an_expiration_is_given():

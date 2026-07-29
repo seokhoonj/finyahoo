@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from .payload import epoch_to_datetime, unwrap_raw_int, unwrap_result
+from .payload import as_number, each_dict, epoch_to_datetime, unwrap_raw_int, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,12 +60,16 @@ class Quote:
 def parse_quotes(payload: str) -> tuple[Quote, ...]:
     """Parse a quote response into one ``Quote`` per symbol, in Yahoo's order.
 
+    A request that matched nothing (only unknown symbols) is a legitimately empty
+    result, not shape drift, and returns an empty tuple.
+
     Raises:
         YahooRequestError: the response carries an ``error``.
         YahooParseError: the payload is not the quoteResponse shape.
     """
-    records = unwrap_result(payload, "quoteResponse", "quote", "the requested symbols")
-    return tuple(parse_quote_record(record) for record in records)
+    records = unwrap_result(payload, "quoteResponse", "quote", "the requested symbols",
+                            allow_empty=True)
+    return tuple(parse_quote_record(record) for record in each_dict(records, "quote"))
 
 
 def parse_quote_record(record: dict[str, Any]) -> Quote:
@@ -78,25 +82,25 @@ def parse_quote_record(record: dict[str, Any]) -> Quote:
         currency                = record.get("currency"),
         exchange                = record.get("fullExchangeName") or record.get("exchange"),
         market_state            = record.get("marketState"),
-        price                   = record.get("regularMarketPrice"),
-        previous_close          = record.get("regularMarketPreviousClose"),
-        change                  = record.get("regularMarketChange"),
-        change_percent          = record.get("regularMarketChangePercent"),
-        day_open                = record.get("regularMarketOpen"),
-        day_high                = record.get("regularMarketDayHigh"),
-        day_low                 = record.get("regularMarketDayLow"),
+        price                   = as_number(record.get("regularMarketPrice")),
+        previous_close          = as_number(record.get("regularMarketPreviousClose")),
+        change                  = as_number(record.get("regularMarketChange")),
+        change_percent          = as_number(record.get("regularMarketChangePercent")),
+        day_open                = as_number(record.get("regularMarketOpen")),
+        day_high                = as_number(record.get("regularMarketDayHigh")),
+        day_low                 = as_number(record.get("regularMarketDayLow")),
         volume                  = unwrap_raw_int(record.get("regularMarketVolume")),
         market_cap              = unwrap_raw_int(record.get("marketCap")),
         shares_outstanding      = unwrap_raw_int(record.get("sharesOutstanding")),
-        fifty_two_week_high     = record.get("fiftyTwoWeekHigh"),
-        fifty_two_week_low      = record.get("fiftyTwoWeekLow"),
-        fifty_day_average       = record.get("fiftyDayAverage"),
-        two_hundred_day_average = record.get("twoHundredDayAverage"),
-        trailing_pe             = record.get("trailingPE"),
-        forward_pe              = record.get("forwardPE"),
-        price_to_book           = record.get("priceToBook"),
-        trailing_eps            = record.get("epsTrailingTwelveMonths"),
-        forward_eps             = record.get("epsForward"),
-        dividend_yield          = record.get("dividendYield"),
+        fifty_two_week_high     = as_number(record.get("fiftyTwoWeekHigh")),
+        fifty_two_week_low      = as_number(record.get("fiftyTwoWeekLow")),
+        fifty_day_average       = as_number(record.get("fiftyDayAverage")),
+        two_hundred_day_average = as_number(record.get("twoHundredDayAverage")),
+        trailing_pe             = as_number(record.get("trailingPE")),
+        forward_pe              = as_number(record.get("forwardPE")),
+        price_to_book           = as_number(record.get("priceToBook")),
+        trailing_eps            = as_number(record.get("epsTrailingTwelveMonths")),
+        forward_eps             = as_number(record.get("epsForward")),
+        dividend_yield          = as_number(record.get("dividendYield")),
         market_time             = epoch_to_datetime(record.get("regularMarketTime")),
     )

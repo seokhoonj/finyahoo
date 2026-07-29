@@ -35,12 +35,12 @@ with YahooClient() as yahoo:
 | `fetch_profile(symbol)` | quoteSummary | ✓ | `Profile` — current fundamentals snapshot |
 | `fetch_quotes(symbols)` | quote | ✓ | `tuple[Quote]` — live snapshot per symbol |
 | `fetch_search(query)` | search | | `Search` — symbol matches + related news |
-| `fetch_timeseries(symbol, types, *, start, end)` | timeseries | | `tuple[FinancialSeries]` — dated financial line items |
+| `fetch_timeseries(symbol, metric_types, *, start, end)` | timeseries | | `tuple[FinancialSeries]` — dated financial line items |
 | `fetch_spark(symbols, *, period, interval)` | spark | | `tuple[Spark]` — compact close series per symbol |
 | `fetch_options(symbol, *, expiration)` | options | ✓ | `OptionChain` — calls/puts for one expiration |
 | `fetch_recommendations(symbol)` | recommendationsbysymbol | | `tuple[Recommendation]` — similar symbols |
 | `fetch_insights(symbol)` | insights | ✓ | `Insights` — analyst target, valuation, outlooks, reports |
-| `fetch_screener(screen_id, *, count)` | screener/predefined | ✓ | `Screen` — a predefined screen's members (as `Quote`s) |
+| `fetch_screener(screen_id, *, page_size)` | screener/predefined | ✓ | `Screen` — a predefined screen's members (as `Quote`s) |
 
 The crumb (a session token Yahoo requires on some endpoints) is minted and
 re-minted for you.

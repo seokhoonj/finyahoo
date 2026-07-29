@@ -109,6 +109,8 @@ class YahooClient:
     def __init__(self, *, timeout: float = 30.0, delay_seconds: float = 0.5) -> None:
         self.timeout = timeout
         self.delay_seconds = delay_seconds
+        # curl_cffi's Session is generic but untyped at this boundary, so the type
+        # parameter can only be Any here.
         self._session: requests.Session[Any] = requests.Session(impersonate=_IMPERSONATE)
         self._crumb: str | None = None
         self._next_request_at = 0.0
@@ -141,7 +143,10 @@ class YahooClient:
         carries the market suffix (``005930.KS`` KOSPI, ``.KQ`` KOSDAQ), an index
         is caret-prefixed (``^GSPC``). Both bounds are inclusive and both default
         to the widest available window -- ``start`` to Yahoo's earliest bar,
-        ``end`` to the latest.
+        ``end`` to the latest. Both are interpreted at UTC midnight of the given
+        day; for an exchange whose local session opens before UTC midnight this can
+        shift the very first included day, so widen ``start`` by a day if the
+        boundary day matters.
 
         A delisted or unknown ticker raises ``YahooRequestError`` ("Not Found"),
         not an empty result, because Yahoo distinguishes the two.
@@ -177,18 +182,19 @@ class YahooClient:
         url = _SUMMARY_URL.format(symbol=quote(symbol, safe=""))
         return parse_profile(self._get_crumbed(url, {"modules": ",".join(PROFILE_MODULES)}), symbol)
 
-    def fetch_quotes(self, symbols: Sequence[str]) -> tuple[Quote, ...]:
+    def fetch_quotes(self, symbols: str | Sequence[str]) -> tuple[Quote, ...]:
         """Fetch a live snapshot for each of ``symbols`` in one request.
 
         The real-time price, day range, and trailing multiples as of now -- not
-        history. Returns one ``Quote`` per symbol, in Yahoo's order.
+        history. ``symbols`` is one ticker or a sequence of them. Returns one
+        ``Quote`` per symbol, in Yahoo's order.
 
         Raises:
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the quoteResponse shape.
         """
-        text = self._get_crumbed(_QUOTE_URL, {"symbols": ",".join(symbols)})
+        text = self._get_crumbed(_QUOTE_URL, {"symbols": _join_values(symbols)})
         return parse_quotes(text)
 
     def fetch_search(self, query: str, *, quotes_count: int = 6,
@@ -208,14 +214,15 @@ class YahooClient:
         }).text
         return parse_search(text, query)
 
-    def fetch_spark(self, symbols: Sequence[str], *, period: SparkPeriod = "1mo",
+    def fetch_spark(self, symbols: str | Sequence[str], *, period: SparkPeriod = "1mo",
                     interval: SparkInterval = "1d") -> tuple[Spark, ...]:
         """Fetch a compact close series for each of ``symbols`` in one request.
 
         Close-only, for a sparkline; for full OHLCV and events fetch one symbol
-        through ``fetch_history``. ``period`` is the lookback window (Yahoo's own
-        ``range`` argument -- ``1mo``/``1y``/``ytd``...), ``interval`` the bar size
-        within it. Needs no crumb.
+        through ``fetch_history``. ``symbols`` is one ticker or a sequence of them.
+        ``period`` is the lookback window (Yahoo's own ``range`` argument --
+        ``1mo``/``1y``/``ytd``...), ``interval`` the bar size within it. Needs no
+        crumb.
 
         Raises:
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
@@ -223,30 +230,34 @@ class YahooClient:
             YahooParseError: the payload was not the spark shape.
         """
         text = self._get(_SPARK_URL, params={
-            "symbols": ",".join(symbols), "range": period, "interval": interval,
+            "symbols": _join_values(symbols), "range": period, "interval": interval,
         }).text
         return parse_spark(text)
 
-    def fetch_timeseries(self, symbol: str, types: Sequence[str], *,
+    def fetch_timeseries(self, symbol: str, metric_types: str | Sequence[str], *,
                          start: date | None = None,
                          end: date | None = None) -> tuple[FinancialSeries, ...]:
         """Fetch dated financial line items for ``symbol``.
 
-        ``types`` are Yahoo's own line-item names (``annualTotalRevenue``,
-        ``quarterlyNetIncome``, ...); one request may ask several and one
-        ``FinancialSeries`` comes back per type. Where ``fetch_profile`` is a
-        snapshot, this is the history. Needs no crumb.
+        ``metric_types`` are Yahoo's own line-item names (``annualTotalRevenue``,
+        ``quarterlyNetIncome``, ...) -- one name or a sequence of them; one request
+        may ask several and one ``FinancialSeries`` comes back per type (named
+        ``metric`` on the result). Where ``fetch_profile`` is a snapshot, this is the
+        history. Needs no crumb.
 
         Raises:
+            ValueError: ``start`` is after ``end`` (a caller bug).
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the timeseries shape.
         """
+        if start is not None and end is not None and start > end:
+            raise ValueError(f"start {start} is after end {end}")
         # Unlike the chart endpoint, timeseries rejects the 9999999999 open-end
         # sentinel (it reads as out of range and returns zero points), so "up to
         # now" is the current time, not a sentinel.
         text = self._get(_TIMESERIES_URL.format(symbol=quote(symbol, safe="")), params={
-            "type":          ",".join(types),
+            "type":          _join_values(metric_types),
             "period1":       _EPOCH_START if start is None else _to_epoch(start),
             "period2":       int(time.time()) if end is None else _to_epoch(end) + _ONE_DAY_SECONDS,
             "merge":         "false",
@@ -296,19 +307,19 @@ class YahooClient:
         """
         return parse_insights(self._get_crumbed(_INSIGHTS_URL, {"symbol": symbol}), symbol)
 
-    def fetch_screener(self, screen_id: str, *, count: int = 25) -> Screen:
+    def fetch_screener(self, screen_id: str, *, page_size: int = 25) -> Screen:
         """Run one of Yahoo's predefined screens (``most_actives``,
         ``day_gainers``, ``undervalued_growth_stocks``, ...).
 
-        ``count`` bounds the page returned; the screen's full match ``total`` rides
-        on the result. Members come back as ``Quote``s. Needs a crumb.
+        ``page_size`` bounds the page returned; the screen's full match ``total``
+        rides on the result. Members come back as ``Quote``s. Needs a crumb.
 
         Raises:
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed, or the screen id is unknown.
             YahooParseError: the payload was not the screener shape.
         """
-        text = self._get_crumbed(_SCREENER_URL, {"scrIds": screen_id, "count": count})
+        text = self._get_crumbed(_SCREENER_URL, {"scrIds": screen_id, "count": page_size})
         return parse_screener(text)
 
     def _get_crumbed(self, url: str, params: Mapping[str, str | int]) -> str:
@@ -399,3 +410,14 @@ class YahooClient:
 def _to_epoch(day: date) -> int:
     """A date as UTC epoch seconds -- Yahoo's ``period1``/``period2`` unit."""
     return int(datetime(day.year, day.month, day.day, tzinfo=UTC).timestamp())
+
+
+def _join_values(values: str | Sequence[str]) -> str:
+    """One value or a sequence of them as Yahoo's comma-separated argument.
+
+    A bare ``str`` is a single value, not an iterable of characters: ``"AAPL"``
+    must reach Yahoo as ``AAPL``, never ``A,A,P,L``. Because ``str`` satisfies
+    ``Sequence[str]``, joining without this guard would silently split one ticker
+    into its letters and query the wrong symbols.
+    """
+    return values if isinstance(values, str) else ",".join(values)

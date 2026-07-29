@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .payload import unwrap_raw, unwrap_raw_int, unwrap_result
+from .payload import first_dict, unwrap_raw, unwrap_raw_int, unwrap_result
 
 # The modules this reader asks for and knows how to read. Kept here so the client
 # requests exactly what ``parse_profile`` consumes -- one list, not two that drift.
@@ -79,11 +79,13 @@ def parse_profile(payload: str, symbol: str) -> Profile:
             or a crumb the caller must re-mint.
         YahooParseError: the payload is not JSON, or not the quoteSummary shape.
     """
-    result = unwrap_result(payload, "quoteSummary", "profile", symbol)[0]
+    result = first_dict(unwrap_result(payload, "quoteSummary", "profile", symbol), "profile")
 
-    # Merge the modules into one flat lookup: each field lives in exactly one
-    # module, so there is no collision, and a merged view spares the reader from
-    # knowing which module holds which field.
+    # Merge the modules into one flat lookup, so the reader is spared knowing which
+    # module holds which field. The few keys that appear in more than one module
+    # (e.g. currency, in both summaryDetail and financialData) carry the same value,
+    # so a later module overwriting an earlier one is harmless; PROFILE_MODULES sets
+    # the order if that assumption ever fails to hold.
     modules: dict[str, Any] = {}
     for module in result.values():
         if isinstance(module, dict):

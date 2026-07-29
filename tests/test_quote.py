@@ -65,3 +65,25 @@ def test_error_envelope_raises_request_error():
 def test_non_quote_shape_raises_parse_error():
     with pytest.raises(YahooParseError):
         parse_quotes('{"unexpected": "shape"}')
+
+
+def test_a_json_bool_does_not_read_as_a_price():
+    """bool is an int subclass, so an unguarded field would take `true` as 1.0; the
+    bare-number guard must keep it out of a float field."""
+    payload = '{"quoteResponse": {"error": null, "result": [{"symbol": "X", "regularMarketPrice": true}]}}'
+    assert parse_quotes(payload)[0].price is None
+
+
+def test_a_null_record_is_shape_drift_not_a_silent_skip():
+    """A valid envelope carrying a null quote record is drift; it must raise, not
+    escape as an AttributeError from a later .get()."""
+    payload = '{"quoteResponse": {"error": null, "result": [null]}}'
+    with pytest.raises(YahooParseError):
+        parse_quotes(payload)
+
+
+def test_an_empty_result_is_no_matches_not_an_error():
+    """A request that matched only unknown symbols returns an empty result with a
+    null error -- a legitimate 'no matches', so an empty tuple, not a parse error."""
+    payload = '{"quoteResponse": {"error": null, "result": []}}'
+    assert parse_quotes(payload) == ()

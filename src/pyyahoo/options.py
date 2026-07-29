@@ -17,15 +17,24 @@ from datetime import date, datetime
 from typing import Any
 
 from .errors import YahooParseError
-from .payload import epoch_to_date, epoch_to_datetime, unwrap_raw_int, unwrap_result
+from .payload import (
+    as_number,
+    epoch_to_date,
+    epoch_to_datetime,
+    first_dict,
+    is_number,
+    unwrap_raw_int,
+    unwrap_result,
+)
 
 
 @dataclass(frozen=True, slots=True)
 class OptionContract:
     """One call or put at one strike and expiration.
 
-    ``implied_volatility`` and ``percent_change`` are fractions (0.25 is 25%),
-    Yahoo's own form. ``is_in_the_money`` is Yahoo's flag, not recomputed here.
+    ``implied_volatility`` is a fraction (0.25 is 25%), Yahoo's own form.
+    ``change_percent`` is a percent (2.5 is +2.5%), matching ``Quote.change_percent``.
+    ``is_in_the_money`` is Yahoo's flag, not recomputed here.
     """
 
     contract_symbol: str
@@ -33,7 +42,7 @@ class OptionContract:
     currency: str | None
     last_price: float | None
     change: float | None
-    percent_change: float | None
+    change_percent: float | None
     bid: float | None
     ask: float | None
     volume: int | None
@@ -69,7 +78,8 @@ def parse_options(payload: str) -> OptionChain:
         YahooRequestError: the response carries an ``error`` -- an unknown symbol.
         YahooParseError: the payload is not the optionChain shape.
     """
-    result = unwrap_result(payload, "optionChain", "options", "the requested symbol")[0]
+    result = first_dict(unwrap_result(payload, "optionChain", "options", "the requested symbol"),
+                        "options")
     # A missing "options" key is shape drift and must fail loudly; an empty list is
     # a real underlying that lists no options, and yields an empty chain.
     if "options" not in result:
@@ -82,7 +92,7 @@ def parse_options(payload: str) -> OptionChain:
             day for epoch in result.get("expirationDates", [])
             if (day := epoch_to_date(epoch)) is not None
         ),
-        strikes          = tuple(result.get("strikes", [])),
+        strikes          = tuple(s for s in result.get("strikes", []) if is_number(s)),
         expiration       = epoch_to_date(chain.get("expirationDate")),
         calls            = _parse_contracts(chain.get("calls") or []),
         puts             = _parse_contracts(chain.get("puts") or []),
@@ -93,16 +103,16 @@ def _parse_contracts(rows: list[dict[str, Any]]) -> tuple[OptionContract, ...]:
     return tuple(
         OptionContract(
             contract_symbol    = row.get("contractSymbol", ""),
-            strike             = row.get("strike"),
+            strike             = as_number(row.get("strike")),
             currency           = row.get("currency"),
-            last_price         = row.get("lastPrice"),
-            change             = row.get("change"),
-            percent_change     = row.get("percentChange"),
-            bid                = row.get("bid"),
-            ask                = row.get("ask"),
+            last_price         = as_number(row.get("lastPrice")),
+            change             = as_number(row.get("change")),
+            change_percent     = as_number(row.get("percentChange")),
+            bid                = as_number(row.get("bid")),
+            ask                = as_number(row.get("ask")),
             volume             = unwrap_raw_int(row.get("volume")),
             open_interest      = unwrap_raw_int(row.get("openInterest")),
-            implied_volatility = row.get("impliedVolatility"),
+            implied_volatility = as_number(row.get("impliedVolatility")),
             is_in_the_money    = row.get("inTheMoney"),
             contract_size      = row.get("contractSize"),
             expiration         = epoch_to_date(row.get("expiration")),

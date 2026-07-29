@@ -73,3 +73,12 @@ def test_error_envelope_raises_request_error():
 def test_non_option_shape_raises_parse_error():
     with pytest.raises(YahooParseError):
         parse_options('{"unexpected": "shape"}')
+
+
+def test_a_result_without_an_options_block_is_shape_drift():
+    """A valid optionChain envelope whose result lacks the options key is drift; an
+    empty options list is a real underlying with no chain, but a missing key must
+    raise rather than silently yield an empty chain."""
+    no_block = '{"optionChain": {"error": null, "result": [{"underlyingSymbol": "AAPL"}]}}'
+    with pytest.raises(YahooParseError):
+        parse_options(no_block)

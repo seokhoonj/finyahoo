@@ -24,7 +24,8 @@ def load_json(payload: str, what: str) -> Any:
         raise YahooParseError(f"{what} payload is not JSON: {err}") from err
 
 
-def unwrap_result(payload: str, envelope: str, what: str, label: str) -> Any:
+def unwrap_result(payload: str, envelope: str, what: str, label: str,
+                  *, allow_empty: bool = False) -> Any:
     """Unwrap the recurring ``{envelope: {result, error}}`` shape.
 
     Most endpoints (quote, options, recommendations, insights, screener) wrap their
@@ -32,11 +33,19 @@ def unwrap_result(payload: str, envelope: str, what: str, label: str) -> Any:
     ``result`` as-is -- a list for most, a bare object for insights -- for the
     caller to walk.
 
+    ``allow_empty`` distinguishes two situations an empty ``result`` can mean. By
+    default an empty result is shape drift (a single-item endpoint like chart or
+    quoteSummary should always carry its one object). A multi-item endpoint,
+    though, answers a request that matched nothing with an empty list and a null
+    ``error`` -- a legitimate "no matches", not drift -- so those callers pass
+    ``allow_empty=True`` and receive the empty list.
+
     Raises:
         YahooRequestError: the payload carries an ``error`` -- an unknown symbol,
             or a crumb the caller must re-mint -- carrying Yahoo's own words.
         YahooParseError: the payload is not JSON, or not the ``{envelope: {result,
-            error}}`` shape, or a result that is empty without being an error.
+            error}}`` shape, or (unless ``allow_empty``) a result that is empty
+            without being an error.
     """
     root = load_json(payload, what)
     try:
@@ -46,18 +55,60 @@ def unwrap_result(payload: str, envelope: str, what: str, label: str) -> Any:
         raise YahooParseError(f"{what} payload has no {envelope}/result: {err}") from err
     if error is not None:
         raise YahooRequestError(f"Yahoo served no {what} for {label}: {_format_error(error)}")
-    if not result:
+    if not result and not allow_empty:
         raise YahooParseError(f"{what} result for {label} is empty but not an error")
     return result
 
 
-def _is_number(value: object) -> TypeGuard[int | float]:
+def first_dict(result: object, what: str) -> dict[str, Any]:
+    """The first element of an unwrapped list result, guaranteed an object.
+
+    ``unwrap_result`` guarantees the result is present, not that it is a list whose
+    first element is an object. A drift to a bare value, or a non-object first
+    element, is shape drift -- raised here as ``YahooParseError`` rather than let
+    escape as a bare ``IndexError``/``AttributeError`` past the documented contract.
+    """
+    if not isinstance(result, list) or not result:
+        raise YahooParseError(f"{what} result is not a non-empty list: {type(result).__name__}")
+    first = result[0]
+    if not isinstance(first, dict):
+        raise YahooParseError(f"{what} result[0] is not an object: {type(first).__name__}")
+    return first
+
+
+def each_dict(items: object, what: str) -> list[dict[str, Any]]:
+    """Every element of a result list, each guaranteed an object.
+
+    A non-list, or a non-object element (a JSON ``null`` record), is shape drift
+    raised as ``YahooParseError`` rather than left to escape as an ``AttributeError``
+    from a later ``.get()``.
+    """
+    if not isinstance(items, list):
+        raise YahooParseError(f"{what} result is not a list: {type(items).__name__}")
+    for item in items:
+        if not isinstance(item, dict):
+            raise YahooParseError(f"{what} result has a non-object entry: {type(item).__name__}")
+    return items
+
+
+def is_number(value: object) -> TypeGuard[int | float]:
     """A real numeric reading -- int or float, but not bool.
 
     ``bool`` is a subclass of ``int``, so a JSON ``true`` would otherwise pass as
     ``1`` and reach a price/timestamp field as a fake reading; exclude it.
     """
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def as_number(value: object) -> float | None:
+    """A bare numeric field as a float, or None when it is absent or not a number.
+
+    The counterpart to ``unwrap_raw`` for endpoints that answer with bare numbers
+    rather than ``{"raw": ..}`` boxes (quote, options, search, ...). Routing every
+    bare numeric field through this keeps a JSON ``true`` or an unexpected ``{..}``
+    box out of a field typed ``float | None``, so the hint stays honest.
+    """
+    return value if is_number(value) else None
 
 
 def unwrap_raw(node: object) -> float | None:
@@ -69,8 +120,8 @@ def unwrap_raw(node: object) -> float | None:
     """
     if isinstance(node, dict):
         value = node.get("raw")
-        return value if _is_number(value) else None
-    return node if _is_number(node) else None
+        return value if is_number(value) else None
+    return node if is_number(node) else None
 
 
 def unwrap_raw_int(node: object) -> int | None:
@@ -81,7 +132,7 @@ def unwrap_raw_int(node: object) -> int | None:
 
 def epoch_to_datetime(value: object) -> datetime | None:
     """A Yahoo epoch-seconds timestamp as a UTC datetime, or None if absent."""
-    return datetime.fromtimestamp(value, tz=UTC) if _is_number(value) else None
+    return datetime.fromtimestamp(value, tz=UTC) if is_number(value) else None
 
 
 def epoch_to_date(value: object) -> date | None:

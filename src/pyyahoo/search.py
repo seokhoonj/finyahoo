@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .errors import YahooParseError
-from .payload import epoch_to_datetime, load_json
+from .payload import as_number, each_dict, epoch_to_datetime, load_json
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,7 +31,7 @@ class SearchMatch:
     name: str | None
     exchange: str | None
     quote_type: str | None
-    type_disp: str | None
+    type_display: str | None
     sector: str | None
     industry: str | None
     score: float | None
@@ -69,16 +69,16 @@ def parse_search(payload: str, query: str) -> Search:
         raise YahooParseError("search payload has no quotes array")
     matches = tuple(
         SearchMatch(
-            symbol     = match.get("symbol", ""),
-            name       = match.get("shortname") or match.get("longname"),
-            exchange   = match.get("exchDisp") or match.get("exchange"),
-            quote_type = match.get("quoteType"),
-            type_disp  = match.get("typeDisp"),
-            sector     = match.get("sector"),
-            industry   = match.get("industry"),
-            score      = match.get("score"),
+            symbol       = match.get("symbol", ""),
+            name         = match.get("shortname") or match.get("longname"),
+            exchange     = match.get("exchDisp") or match.get("exchange"),
+            quote_type   = match.get("quoteType"),
+            type_display = match.get("typeDisp"),
+            sector       = match.get("sector"),
+            industry     = match.get("industry"),
+            score        = as_number(match.get("score")),
         )
-        for match in root.get("quotes", [])
+        for match in each_dict(root.get("quotes", []), "search quotes")
     )
     news = tuple(
         SearchNews(
@@ -87,8 +87,8 @@ def parse_search(payload: str, query: str) -> Search:
             publisher       = item.get("publisher"),
             link            = item.get("link"),
             published_at    = epoch_to_datetime(item.get("providerPublishTime")),
-            related_tickers = tuple(item.get("relatedTickers", [])),
+            related_tickers = tuple(t for t in item.get("relatedTickers", []) if isinstance(t, str)),
         )
-        for item in root.get("news", [])
+        for item in each_dict(root.get("news", []), "search news")
     )
     return Search(query=query, matches=matches, news=news)

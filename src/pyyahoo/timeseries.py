@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .errors import YahooParseError
-from .payload import iso_to_date, unwrap_raw, unwrap_result
+from .payload import each_dict, iso_to_date, unwrap_raw, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,11 +26,11 @@ class FinancialPoint:
     """One reported value at one fiscal period end.
 
     ``period_type`` is Yahoo's own label for the span the value covers ("12M" for
-    an annual line, "3M" for a quarterly one). ``value`` is in ``currency``.
+    an annual line, "3M" for a quarterly one). ``reported_value`` is in ``currency``.
     """
 
     as_of_date: date
-    value: float
+    reported_value: float
     period_type: str | None
     currency: str | None
 
@@ -55,7 +55,7 @@ def parse_timeseries(payload: str, symbol: str) -> tuple[FinancialSeries, ...]:
         YahooRequestError: the response carries an ``error``.
         YahooParseError: the payload is not the timeseries shape.
     """
-    results = unwrap_result(payload, "timeseries", "timeseries", symbol)
+    results = each_dict(unwrap_result(payload, "timeseries", "timeseries", symbol), "timeseries")
     series = []
     for entry in results:
         metric = _series_metric(entry)
@@ -92,16 +92,20 @@ def _series_metric(entry: dict[str, object]) -> str | None:
 def _parse_points(rows: list[object]) -> tuple[FinancialPoint, ...]:
     points = []
     for row in rows:
-        if not isinstance(row, dict):
+        if row is None:
             continue      # Yahoo pads missing periods with null; not a point
+        if not isinstance(row, dict):
+            # A non-null, non-object row is shape drift, not padding -- fail loudly
+            # rather than silently return a short series.
+            raise YahooParseError(f"timeseries row is not an object: {type(row).__name__}")
         as_of = iso_to_date(row.get("asOfDate"))
-        value = unwrap_raw(row.get("reportedValue"))
-        if as_of is None or value is None:
+        reported_value = unwrap_raw(row.get("reportedValue"))
+        if as_of is None or reported_value is None:
             continue
         points.append(FinancialPoint(
-            as_of_date  = as_of,
-            value       = value,
-            period_type = row.get("periodType"),
-            currency    = row.get("currencyCode"),
+            as_of_date     = as_of,
+            reported_value = reported_value,
+            period_type    = row.get("periodType"),
+            currency       = row.get("currencyCode"),
         ))
     return tuple(points)

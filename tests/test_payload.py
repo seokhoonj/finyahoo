@@ -8,17 +8,24 @@ at once.
 
 from datetime import UTC, date, datetime
 
+import pytest
+
+from pyyahoo import YahooParseError
 from pyyahoo.payload import (
+    as_number,
+    each_dict,
     epoch_to_date,
     epoch_to_datetime,
+    first_dict,
     iso_to_date,
     unwrap_raw,
     unwrap_raw_int,
+    unwrap_result,
 )
 
 
 def test_unwrap_raw_reads_the_boxed_number_and_the_bare_number():
-    assert unwrap_raw({"raw": 3.5, "fmt": "3.50"}) == 3.5
+    assert unwrap_raw({"raw": 3.5, "fmt": "3.50"}) == pytest.approx(3.5)
     assert unwrap_raw(42) == 42                 # some endpoints do not box
 
 
@@ -54,3 +61,40 @@ def test_iso_to_date_parses_and_returns_none_on_garbage():
     assert iso_to_date("2022-13-40") is None    # out-of-range month/day
     assert iso_to_date("not-a-date") is None
     assert iso_to_date(123) is None
+
+
+def test_as_number_reads_a_bare_number_and_rejects_non_numbers():
+    """The bare-field counterpart to unwrap_raw: a JSON true or a stray box must not
+    reach a field typed float | None."""
+    assert as_number(339.25) == pytest.approx(339.25)
+    assert as_number(0) == 0                     # a real zero, not absence
+    assert as_number(None) is None
+    assert as_number(True) is None               # bool is not a number
+    assert as_number({"raw": 5}) is None         # an unexpected box, not a bare number
+    assert as_number("339.25") is None           # a string is not a number
+
+
+def test_first_dict_returns_the_object_or_raises_on_drift():
+    assert first_dict([{"a": 1}], "x") == {"a": 1}
+    with pytest.raises(YahooParseError):
+        first_dict({"a": 1}, "x")                # a bare object, not a list
+    with pytest.raises(YahooParseError):
+        first_dict([], "x")                      # an empty list
+    with pytest.raises(YahooParseError):
+        first_dict([42], "x")                    # first element is not an object
+
+
+def test_each_dict_returns_the_list_or_raises_on_a_non_object_entry():
+    assert each_dict([{"a": 1}, {"b": 2}], "x") == [{"a": 1}, {"b": 2}]
+    assert each_dict([], "x") == []              # empty is fine here
+    with pytest.raises(YahooParseError):
+        each_dict({"a": 1}, "x")                 # not a list
+    with pytest.raises(YahooParseError):
+        each_dict([{"a": 1}, None], "x")         # a null record is shape drift
+
+
+def test_unwrap_result_allow_empty_distinguishes_no_matches_from_drift():
+    empty = '{"quoteResponse": {"error": null, "result": []}}'
+    assert unwrap_result(empty, "quoteResponse", "quote", "syms", allow_empty=True) == []
+    with pytest.raises(YahooParseError):
+        unwrap_result(empty, "quoteResponse", "quote", "syms")   # empty is drift by default

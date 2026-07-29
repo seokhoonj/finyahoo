@@ -38,7 +38,7 @@ from enum import Enum
 from typing import Any
 
 from .errors import YahooParseError
-from .payload import unwrap_result
+from .payload import first_dict, is_number, unwrap_result
 
 
 class Timeframe(Enum):
@@ -55,7 +55,9 @@ class PriceBar:
 
     ``close`` is split-adjusted; ``adj_close`` is split- and dividend-adjusted.
     Prices are float and in the symbol's own currency (``meta.currency`` -- KRW for
-    ``005930.KS``, USD for ``MU``); this does not convert. ``volume`` is shares.
+    ``005930.KS``, USD for ``MU``); this does not convert. ``volume`` is shares, or
+    ``None`` when Yahoo omits it for an otherwise-priced bar (a halted session, some
+    index feeds) -- never 0, which is a real no-trade reading.
     """
 
     trade_date: date
@@ -64,7 +66,7 @@ class PriceBar:
     low: float
     close: float
     adj_close: float
-    volume: int
+    volume: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,7 +119,7 @@ def parse_history(payload: str, symbol: str) -> PriceHistory:
             unknown ticker, which found no data rather than arriving malformed.
         YahooParseError: the payload is not JSON, or not the chart shape.
     """
-    result = unwrap_result(payload, "chart", "chart", symbol)[0]
+    result = first_dict(unwrap_result(payload, "chart", "chart", symbol), "chart")
     offset = timedelta(seconds=_int_or_zero((result.get("meta") or {}).get("gmtoffset")))
     return PriceHistory(
         symbol    = symbol,
@@ -150,14 +152,15 @@ def _parse_bars(result: dict[str, Any], offset: timedelta) -> tuple[PriceBar, ..
                 low        = low,
                 close      = close,
                 adj_close  = adj_close,
-                volume     = _int_or_zero(volume),
+                volume     = int(volume) if is_number(volume) else None,
             )
             for epoch, open_, high, low, close, adj_close, volume in rows
-            # A bar is stored only when every price is present. Yahoo nulls a bar
-            # it has no data for, and the in-progress current-day bar can carry a
-            # close with no adjusted close yet -- either way it is not a settled
-            # bar, and a None must never reach a float field.
-            if None not in (open_, high, low, close, adj_close)
+            # A bar is stored only when every price is a real number. Yahoo nulls a
+            # bar it has no data for, and the in-progress current-day bar can carry
+            # a close with no adjusted close yet -- either way it is not a settled
+            # bar. Testing for a number (not just non-None) also keeps a stray bool
+            # or boxed value out of the float fields.
+            if all(is_number(v) for v in (open_, high, low, close, adj_close))
         )
     except (KeyError, IndexError, TypeError, ValueError) as err:
         raise YahooParseError(f"chart result has a malformed quote block: {err}") from err
@@ -197,6 +200,9 @@ def _local_date(epoch: int, offset: timedelta) -> date:
 
 
 def _int_or_zero(value: object) -> int:
-    """A Yahoo numeric (volume shares, or a gmtoffset) as int, with None -- a
-    non-trading marker, or an absent offset -- reading as 0."""
-    return int(value) if isinstance(value, (int, float)) else 0
+    """A Yahoo ``gmtoffset`` as int, with an absent offset reading as 0 (UTC).
+
+    An offset genuinely defaults to 0 when missing, unlike a bar's volume, where a
+    missing reading is None rather than a real zero.
+    """
+    return int(value) if is_number(value) else 0

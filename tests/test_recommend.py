@@ -4,7 +4,7 @@ import pytest
 
 from pyyahoo import Recommendation, YahooParseError, YahooRequestError, parse_recommendations
 
-_FIVE = """
+_THREE = """
 {"finance": {"error": null, "result": [{
   "symbol": "AAPL",
   "recommendedSymbols": [
@@ -19,14 +19,14 @@ _ERROR = '{"finance": {"result": null, "error": {"code": "Not Found", "descripti
 
 
 def test_parses_recommended_symbols_with_scores():
-    recs = parse_recommendations(_FIVE, "AAPL")
+    recs = parse_recommendations(_THREE, "AAPL")
     assert isinstance(recs[0], Recommendation)
     assert [r.symbol for r in recs] == ["AMZN", "TSLA", "GOOG"]
     assert recs[0].score == pytest.approx(0.189631)
 
 
 def test_a_recommendation_without_a_score_is_none():
-    assert parse_recommendations(_FIVE, "AAPL")[2].score is None
+    assert parse_recommendations(_THREE, "AAPL")[2].score is None
 
 
 def test_error_envelope_raises_request_error():
