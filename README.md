@@ -60,15 +60,6 @@ market suffix (`005930.KS` KOSPI, `.KQ` KOSDAQ), an index is caret-prefixed
 (`^GSPC`). A delisted or unknown ticker raises `YahooRequestError`, not an empty
 result.
 
-## The one dependency
-
-pyyahoo depends only on [`curl_cffi`](https://github.com/lexiforest/curl_cffi), and
-it is load-bearing. Yahoo gates these endpoints on the client's **TLS
-fingerprint**, not a header — a plain `urllib` or `requests` call gets `429` where
-a browser-shaped handshake succeeds. `curl_cffi`'s `impersonate="chrome"` presents
-that handshake. A `YahooBlockedError` (HTTP 429) means Yahoo is refusing the
-client; it is raised, never retried through, so the caller backs off.
-
 ## Install
 
 ```sh

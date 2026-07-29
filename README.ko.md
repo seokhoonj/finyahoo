@@ -58,15 +58,6 @@ crumb(Yahoo가 일부 엔드포인트에서 요구하는 세션 토큰)는 자�
 `.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`). 폐지·미상 티커는 빈 결과가 아니라
 `YahooRequestError`를 낸다.
 
-## 유일한 의존성
-
-pyyahoo는 [`curl_cffi`](https://github.com/lexiforest/curl_cffi) 하나에만 의존하며,
-이건 필수다. Yahoo는 이 엔드포인트들을 헤더가 아니라 클라이언트의 **TLS 지문**으로
-막는다 — 평범한 `urllib`·`requests` 호출은 `429`를 받지만, 브라우저 모양의
-핸드셰이크는 통과한다. `curl_cffi`의 `impersonate="chrome"`이 그 핸드셰이크를
-제시한다. `YahooBlockedError`(HTTP 429)는 Yahoo가 클라이언트를 거부한다는 뜻이며,
-재시도하지 않고 그대로 올려 호출자가 물러서게 한다.
-
 ## 설치
 
 ```sh
