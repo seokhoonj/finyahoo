@@ -68,10 +68,10 @@ Requires Python 3.11+.
 Installing the package puts a `pyyahoo` command on PATH (also `python -m pyyahoo`):
 
 ```sh
-pyyahoo history AAPL --start 2024-01-01     # OHLCV bars + split/dividend events
-pyyahoo history ^GSPC --timeframe week      # weekly bars for an index
-pyyahoo profile AAPL                         # current fundamentals
-pyyahoo profile 005930.KS --json             # full snapshot as JSON
+pyyahoo history AAPL --start 2024-01-01  # OHLCV bars + split/dividend events
+pyyahoo history ^GSPC --timeframe week   # weekly bars for an index
+pyyahoo profile AAPL                     # current fundamentals
+pyyahoo profile 005930.KS --json         # full snapshot as JSON
 ```
 
 Both subcommands print a readable summary by default and the full result with

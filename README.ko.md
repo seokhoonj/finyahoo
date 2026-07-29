@@ -66,10 +66,10 @@ Python 3.11 이상이 필요합니다.
 패키지를 설치하면 `pyyahoo` 명령이 PATH에 등록됩니다 (`python -m pyyahoo`로도 실행).
 
 ```sh
-pyyahoo history AAPL --start 2024-01-01     # OHLCV 봉 + 분할/배당 이벤트
-pyyahoo history ^GSPC --timeframe week      # 지수의 주봉
-pyyahoo profile AAPL                         # 현재 펀더멘털
-pyyahoo profile 005930.KS --json             # 전체 스냅샷을 JSON으로
+pyyahoo history AAPL --start 2024-01-01  # OHLCV 봉 + 분할/배당 이벤트
+pyyahoo history ^GSPC --timeframe week   # 지수의 주봉
+pyyahoo profile AAPL                     # 현재 펀더멘털
+pyyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
 ```
 
 두 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다.
