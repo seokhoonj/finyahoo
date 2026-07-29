@@ -11,7 +11,7 @@ Read prices and fundamentals from Yahoo Finance.
 
 Daily, weekly, and monthly open/high/low/close and volume, the adjusted close,
 dividends and splits, company fundamentals (sector, market cap, valuation, ...),
-live quotes, options, and screeners.
+live quotes, options, screeners, and news.
 
 ## 1. Install
 

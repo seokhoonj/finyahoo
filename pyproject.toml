@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "finyahoo"
 version = "0.1.0"
-description = "Read prices and fundamentals from Yahoo Finance's undocumented endpoints through one typed client."
+description = "Read prices, fundamentals, quotes, options, and news from Yahoo Finance."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
