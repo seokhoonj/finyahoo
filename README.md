@@ -13,6 +13,16 @@ Daily, weekly, and monthly open/high/low/close and volume, the adjusted close,
 dividends and splits, company fundamentals (sector, market cap, valuation, ...),
 live quotes, options, and screeners.
 
+## 1. Install
+
+```sh
+pip install finyahoo
+```
+
+Requires Python 3.11+.
+
+## 2. Quickstart
+
 ```python
 from datetime import date
 from finyahoo import YahooClient
@@ -27,7 +37,12 @@ with YahooClient() as yahoo:
     print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
-## Methods
+Symbols are Yahoo tickers: a US stock is bare (`AAPL`), a Korean one carries the
+market suffix (`005930.KS` KOSPI, `.KQ` KOSDAQ), an index is caret-prefixed
+(`^GSPC`). A delisted or unknown ticker raises `YahooRequestError`, not an empty
+result.
+
+## 3. Methods
 
 | method | returns |
 |---|---|
@@ -52,12 +67,7 @@ with YahooClient() as yahoo:
   valuation, growth, margins). A snapshot as of now, not history; every numeric
   field is optional and a missing one is `None`, never `0`.
 
-Symbols are Yahoo tickers: a US stock is bare (`AAPL`), a Korean one carries the
-market suffix (`005930.KS` KOSPI, `.KQ` KOSDAQ), an index is caret-prefixed
-(`^GSPC`). A delisted or unknown ticker raises `YahooRequestError`, not an empty
-result.
-
-## Client options
+## 4. Client options
 
 ```python
 with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
@@ -68,7 +78,7 @@ with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
 requests, which helps when reading many symbols in a row. Outside a `with` block,
 call `yahoo.close()` when done.
 
-## DataFrames
+## 5. DataFrames
 
 Every result record is a dataclass, so pandas or polars tabulates it directly:
 
@@ -85,15 +95,7 @@ prices = pl.DataFrame(history.bars)
 The same works for `history.splits`, `history.dividends`, a screen's `members`, or a
 `fetch_quotes(...)` result.
 
-## Install
-
-```sh
-pip install finyahoo
-```
-
-Requires Python 3.11+.
-
-## Command line
+## 6. Command line
 
 Installing the package puts a `finyahoo` command on PATH (also `python -m finyahoo`):
 
@@ -107,13 +109,13 @@ finyahoo profile 005930.KS --json         # full snapshot as JSON
 Both subcommands print a readable summary by default and the full result with
 `--json`; `finyahoo history --help` / `finyahoo profile --help` list the flags.
 
-## Use it from an AI coding agent
+## 7. Use it from an AI coding agent
 
 This repo doubles as a plugin marketplace for Claude Code and Codex, exposing
 `history` and `profile` as skills that shell out to the `finyahoo` command — so
 install the package first (above); no key or login is involved.
 
-### Claude Code
+### 7.1. Claude Code
 
 ```
 /plugin marketplace add seokhoonj/finyahoo
@@ -123,7 +125,7 @@ install the package first (above); no key or login is involved.
 Then ask in plain words ("show AAPL's profile"), or invoke a skill explicitly —
 `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`.
 
-### Codex
+### 7.2. Codex
 
 ```
 codex plugin marketplace add seokhoonj/finyahoo
@@ -139,6 +141,6 @@ Prefer no plugin? Symlink a skill into your skills directory and call it bare (`
 ln -s "$PWD/plugins/finyahoo/skills/history" ~/.claude/skills/history
 ```
 
-## License
+## 8. License
 
 MIT

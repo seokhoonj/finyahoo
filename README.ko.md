@@ -12,6 +12,16 @@ Yahoo Finance의 시세와 기업정보를 읽어옵니다.
 일·주·월봉의 시가·고가·저가·종가·거래량과 수정종가, 배당·액면분할 내역, 기업
 펀더멘털(섹터·시가총액·밸류에이션 등), 실시간 시세, 옵션, 종목 스크리너까지 다룹니다.
 
+## 1. 설치
+
+```sh
+pip install finyahoo
+```
+
+Python 3.11 이상이 필요합니다.
+
+## 2. 빠른 시작
+
 ```python
 from datetime import date
 from finyahoo import YahooClient
@@ -26,7 +36,11 @@ with YahooClient() as yahoo:
     print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
-## 메서드
+심볼은 Yahoo 티커입니다: 미국주는 그대로(`AAPL`), 한국주는 시장 접미사(`005930.KS`
+코스피, `.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`)를 씁니다. 폐지·미상 티커는 빈 결과가
+아니라 `YahooRequestError`를 냅니다.
+
+## 3. 메서드
 
 | 메서드 | 반환 |
 |---|---|
@@ -50,11 +64,7 @@ with YahooClient() as yahoo:
   입니다. 이력이 아니라 지금 시점의 스냅샷이며, 모든 수치 필드는 선택적이라 없는 값은
   `0`이 아니라 `None`입니다.
 
-심볼은 Yahoo 티커입니다: 미국주는 그대로(`AAPL`), 한국주는 시장 접미사(`005930.KS`
-코스피, `.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`)를 씁니다. 폐지·미상 티커는 빈 결과가
-아니라 `YahooRequestError`를 냅니다.
-
-## 클라이언트 옵션
+## 4. 클라이언트 옵션
 
 ```python
 with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
@@ -65,7 +75,7 @@ with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
 여러 심볼을 잇달아 읽을 때 도움이 됩니다. `with` 블록 밖에서 쓸 때는 끝난 뒤
 `yahoo.close()`를 호출하세요.
 
-## 데이터프레임
+## 5. 데이터프레임
 
 결과를 pandas·polars로 바로 표(DataFrame)로 만들 수 있습니다:
 
@@ -81,15 +91,7 @@ prices = pl.DataFrame(history.bars)
 
 `history.splits`·`history.dividends`, 스크린의 `members`, `fetch_quotes(...)` 결과도 같은 방식입니다.
 
-## 설치
-
-```sh
-pip install finyahoo
-```
-
-Python 3.11 이상이 필요합니다.
-
-## 터미널
+## 6. 터미널
 
 패키지를 설치하면 `finyahoo` 명령이 PATH에 등록됩니다 (`python -m finyahoo`로도 실행).
 
@@ -103,13 +105,13 @@ finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
 두 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다.
 `finyahoo history --help` / `finyahoo profile --help`로 옵션을 확인하세요.
 
-## AI 코딩 에이전트에서 사용
+## 7. AI 코딩 에이전트에서 사용
 
 이 저장소는 Claude Code·Codex용 플러그인 마켓플레이스도 겸합니다 — `history`·`profile`을
 `finyahoo` 명령을 호출하는 스킬로 제공합니다. 먼저 위에서 패키지를 설치하세요(키·로그인
 불필요).
 
-### Claude Code
+### 7.1. Claude Code
 
 ```
 /plugin marketplace add seokhoonj/finyahoo
@@ -119,7 +121,7 @@ finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
 그런 다음 평범하게 물어보거나("AAPL 프로파일 보여줘"), 스킬을 직접 호출하세요 —
 `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`.
 
-### Codex
+### 7.2. Codex
 
 ```
 codex plugin marketplace add seokhoonj/finyahoo
@@ -135,6 +137,6 @@ codex plugin add finyahoo@finyahoo
 ln -s "$PWD/plugins/finyahoo/skills/history" ~/.claude/skills/history
 ```
 
-## 라이선스
+## 8. 라이선스
 
 MIT
