@@ -60,12 +60,15 @@ jobs:
           uv venv /tmp/bare --python ${{ matrix.python-version }}
           uv pip install --python /tmp/bare/bin/python .
           /tmp/bare/bin/python -c "
+          import re
           import importlib.metadata as md
           requires = md.requires('finyahoo') or []
           runtime = [r for r in requires if 'extra ==' not in r]
-          # The distribution name normalizes to curl-cffi (PEP 503) in metadata.
-          assert all(r.replace('_', '-').startswith('curl-cffi') for r in runtime), \
-              f'an unexpected runtime dependency appeared: {runtime}'
+          # Extract each requirement's bare name (before any version/marker/extra) and
+          # normalize to PEP 503 form; the runtime set must be exactly curl-cffi, so a
+          # second dependency -- even one sharing the prefix -- fails the one-dep claim.
+          names = sorted(re.split(r'[<>=!~;\[\s]', r, 1)[0].replace('_', '-').lower() for r in runtime)
+          assert names == ['curl-cffi'], f'unexpected runtime dependencies: {runtime}'
           import finyahoo
           print('finyahoo imports with only curl_cffi present')
           "
