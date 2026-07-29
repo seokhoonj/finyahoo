@@ -9,8 +9,8 @@ from datetime import date
 
 import pytest
 
-from pyyahoo import OptionChain, YahooParseError, YahooRequestError
-from pyyahoo.options import parse_options
+from finyahoo import OptionChain, YahooParseError, YahooRequestError
+from finyahoo.options import parse_options
 
 _CHAIN = """
 {"optionChain": {"error": null, "result": [{

@@ -1,4 +1,4 @@
-"""Run the pyyahoo CLI, so ``python -m pyyahoo`` matches the ``pyyahoo`` console script.
+"""Run the finyahoo CLI, so ``python -m finyahoo`` matches the ``finyahoo`` console script.
 
 Importing this module runs the CLI and terminates the process via ``SystemExit``.
 """

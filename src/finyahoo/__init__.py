@@ -21,7 +21,7 @@ symbol series), ``fetch_options`` (option chain), ``fetch_recommendations``
 Reaches Yahoo through ``curl_cffi``'s Chrome TLS impersonation, without which the
 endpoints answer 429.
 
-    >>> from pyyahoo import YahooClient
+    >>> from finyahoo import YahooClient
     >>> with YahooClient() as yahoo:
     ...     history = yahoo.fetch_history("AAPL")
     ...     profile = yahoo.fetch_profile("AAPL")

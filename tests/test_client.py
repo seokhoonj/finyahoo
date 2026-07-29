@@ -13,7 +13,7 @@ from typing import Any
 import pytest
 from curl_cffi import requests as cffi_requests
 
-from pyyahoo import YahooBlockedError, YahooClient, YahooRequestError
+from finyahoo import YahooBlockedError, YahooClient, YahooRequestError
 
 # A minimal but valid quoteSummary payload the profile parser accepts.
 _PROFILE_JSON = """
@@ -79,7 +79,7 @@ class _FakeSession:
 def _no_sleep(monkeypatch):
     """Capture backoff sleeps so a retry never actually waits."""
     slept: list[float] = []
-    monkeypatch.setattr("pyyahoo.client.time.sleep", slept.append)
+    monkeypatch.setattr("finyahoo.client.time.sleep", slept.append)
     return slept
 
 
@@ -109,7 +109,7 @@ def test_fetch_profile_mints_a_crumb_then_re_mints_once_when_it_is_stale(_no_sle
 def test_a_second_stale_crumb_is_not_retried_again_but_raises():
     """The retry does not tolerate a 401; a crumb that is stale twice is a real
     failure, not an infinite re-mint loop."""
-    from pyyahoo import YahooRequestError
+    from finyahoo import YahooRequestError
     session = _FakeSession(
         _FakeResponse(404, ""), _FakeResponse(200, "old"),
         _FakeResponse(401, ""),
@@ -130,7 +130,7 @@ def test_a_429_is_a_block_and_is_not_retried():
 def test_a_chart_401_is_a_request_error_not_swallowed():
     """The chart endpoint carries no crumb, so a 401 there is a real failure and
     must not be handed to the parser as a normal response."""
-    from pyyahoo import YahooRequestError
+    from finyahoo import YahooRequestError
     session = _FakeSession(_FakeResponse(401, "{}"))
     with pytest.raises(YahooRequestError):
         _client(session).fetch_history("MU")
@@ -169,7 +169,7 @@ def test_history_end_is_inclusive_via_the_next_days_start():
 def test_fetch_timeseries_end_none_sends_now_not_the_open_end_sentinel(monkeypatch):
     """Regression: timeseries rejects the 9999999999 open-end sentinel (returns zero
     points), so an open-ended request must send the current time instead."""
-    monkeypatch.setattr("pyyahoo.client.time.time", lambda: 1_800_000_000)
+    monkeypatch.setattr("finyahoo.client.time.time", lambda: 1_800_000_000)
     session = _FakeSession(_FakeResponse(200, _TIMESERIES_JSON))
     _client(session).fetch_timeseries("AAPL", ["annualTotalRevenue"])
     period2 = session.calls[-1]["params"]["period2"]
@@ -247,7 +247,7 @@ def test_a_second_crumbed_fetch_reuses_the_cached_crumb():
 def test_the_second_request_waits_for_the_pacing_delay(_no_sleep, monkeypatch):
     """With a positive delay, the client sleeps to space consecutive requests; the
     first request does not wait, the second waits the delay."""
-    monkeypatch.setattr("pyyahoo.client.time.monotonic", lambda: 100.0)
+    monkeypatch.setattr("finyahoo.client.time.monotonic", lambda: 100.0)
     session = _FakeSession(_FakeResponse(200, _CHART_EMPTY), _FakeResponse(200, _CHART_EMPTY))
     client = YahooClient(delay_seconds=0.5)
     client._session = session  # type: ignore[assignment]

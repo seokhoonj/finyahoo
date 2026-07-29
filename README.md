@@ -1,9 +1,9 @@
-# pyyahoo
+# finyahoo
 
-[![check](https://github.com/seokhoonj/pyyahoo/actions/workflows/check.yml/badge.svg)](https://github.com/seokhoonj/pyyahoo/actions/workflows/check.yml)
-[![PyPI](https://img.shields.io/pypi/v/pyyahoo)](https://pypi.org/project/pyyahoo/)
-[![Python](https://img.shields.io/pypi/pyversions/pyyahoo)](https://pypi.org/project/pyyahoo/)
-[![License](https://img.shields.io/pypi/l/pyyahoo)](https://github.com/seokhoonj/pyyahoo/blob/main/LICENSE)
+[![check](https://github.com/seokhoonj/finyahoo/actions/workflows/check.yml/badge.svg)](https://github.com/seokhoonj/finyahoo/actions/workflows/check.yml)
+[![PyPI](https://img.shields.io/pypi/v/finyahoo)](https://pypi.org/project/finyahoo/)
+[![Python](https://img.shields.io/pypi/pyversions/finyahoo)](https://pypi.org/project/finyahoo/)
+[![License](https://img.shields.io/pypi/l/finyahoo)](https://github.com/seokhoonj/finyahoo/blob/main/LICENSE)
 
 **English** | [한국어](README.ko.md)
 
@@ -15,7 +15,7 @@ live quotes, options, and screeners.
 
 ```python
 from datetime import date
-from pyyahoo import YahooClient
+from finyahoo import YahooClient
 
 with YahooClient() as yahoo:
     history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
@@ -77,55 +77,55 @@ The same works for `history.splits`, `history.dividends`, a screen's `members`, 
 ## Install
 
 ```sh
-pip install pyyahoo
+pip install finyahoo
 ```
 
 Requires Python 3.11+.
 
 ## Command line
 
-Installing the package puts a `pyyahoo` command on PATH (also `python -m pyyahoo`):
+Installing the package puts a `finyahoo` command on PATH (also `python -m finyahoo`):
 
 ```sh
-pyyahoo history AAPL --start 2024-01-01  # OHLCV bars + split/dividend events
-pyyahoo history ^GSPC --timeframe week   # weekly bars for an index
-pyyahoo profile AAPL                     # current fundamentals
-pyyahoo profile 005930.KS --json         # full snapshot as JSON
+finyahoo history AAPL --start 2024-01-01  # OHLCV bars + split/dividend events
+finyahoo history ^GSPC --timeframe week   # weekly bars for an index
+finyahoo profile AAPL                     # current fundamentals
+finyahoo profile 005930.KS --json         # full snapshot as JSON
 ```
 
 Both subcommands print a readable summary by default and the full result with
-`--json`; `pyyahoo history --help` / `pyyahoo profile --help` list the flags.
+`--json`; `finyahoo history --help` / `finyahoo profile --help` list the flags.
 
 ## Use it from an AI coding agent
 
 This repo doubles as a plugin marketplace for Claude Code and Codex, exposing
-`history` and `profile` as skills that shell out to the `pyyahoo` command — so
+`history` and `profile` as skills that shell out to the `finyahoo` command — so
 install the package first (above); no key or login is involved.
 
 ### Claude Code
 
 ```
-/plugin marketplace add seokhoonj/pyyahoo
-/plugin install pyyahoo@pyyahoo
+/plugin marketplace add seokhoonj/finyahoo
+/plugin install finyahoo@finyahoo
 ```
 
 Then ask in plain words ("show AAPL's profile"), or invoke a skill explicitly —
-`/pyyahoo:history ^GSPC`, `/pyyahoo:profile AAPL`.
+`/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`.
 
 ### Codex
 
 ```
-codex plugin marketplace add seokhoonj/pyyahoo
-codex plugin add pyyahoo@pyyahoo
+codex plugin marketplace add seokhoonj/finyahoo
+codex plugin add finyahoo@finyahoo
 ```
 
-The `history` / `profile` skills trigger on a symbol, or run `pyyahoo history <symbol>`
+The `history` / `profile` skills trigger on a symbol, or run `finyahoo history <symbol>`
 directly.
 
 Prefer no plugin? Symlink a skill into your skills directory and call it bare (`/history`):
 
 ```sh
-ln -s "$PWD/plugins/pyyahoo/skills/history" ~/.claude/skills/history
+ln -s "$PWD/plugins/finyahoo/skills/history" ~/.claude/skills/history
 ```
 
 ## License

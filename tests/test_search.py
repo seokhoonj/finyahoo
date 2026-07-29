@@ -7,8 +7,8 @@ shape, an absent news array, and a payload missing ``quotes`` entirely.
 
 import pytest
 
-from pyyahoo import Search, YahooParseError
-from pyyahoo.search import parse_search
+from finyahoo import Search, YahooParseError
+from finyahoo.search import parse_search
 
 _FULL = """
 {"count": 2, "quotes": [

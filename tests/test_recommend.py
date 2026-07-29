@@ -2,8 +2,8 @@
 
 import pytest
 
-from pyyahoo import Recommendation, YahooParseError, YahooRequestError
-from pyyahoo.recommend import parse_recommendations
+from finyahoo import Recommendation, YahooParseError, YahooRequestError
+from finyahoo.recommend import parse_recommendations
 
 _THREE = """
 {"finance": {"error": null, "result": [{

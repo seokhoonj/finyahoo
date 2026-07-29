@@ -7,8 +7,8 @@ symbol sort, and a non-map payload.
 
 import pytest
 
-from pyyahoo import Spark, YahooParseError
-from pyyahoo.spark import parse_spark
+from finyahoo import Spark, YahooParseError
+from finyahoo.spark import parse_spark
 
 _TWO = """
 {"MSFT": {"symbol": "MSFT", "timestamp": [1700000000, 1700086400, 1700172800],

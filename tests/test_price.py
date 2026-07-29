@@ -11,8 +11,8 @@ from datetime import date
 
 import pytest
 
-from pyyahoo import PriceHistory, YahooParseError, YahooRequestError
-from pyyahoo.price import parse_history
+from finyahoo import PriceHistory, YahooParseError, YahooRequestError
+from finyahoo.price import parse_history
 
 # 005930.KS-shaped: gmtoffset 32400 (KST, UTC+9). The three timestamps are KST
 # midnights, so the +9h shift lands each on its Korean date: 2018-04-27 (epoch

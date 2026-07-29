@@ -55,32 +55,32 @@ jobs:
       - name: Confirm the only runtime dependency is curl_cffi
         # The one-dependency claim is documented in the pyproject comment; a claim
         # nothing checks quietly stops being true. Installed into a bare
-        # environment, pyyahoo must import with nothing beyond curl_cffi present.
+        # environment, finyahoo must import with nothing beyond curl_cffi present.
         run: |
           uv venv /tmp/bare --python ${{ matrix.python-version }}
           uv pip install --python /tmp/bare/bin/python .
           /tmp/bare/bin/python -c "
           import importlib.metadata as md
-          requires = md.requires('pyyahoo') or []
+          requires = md.requires('finyahoo') or []
           runtime = [r for r in requires if 'extra ==' not in r]
           # The distribution name normalizes to curl-cffi (PEP 503) in metadata.
           assert all(r.replace('_', '-').startswith('curl-cffi') for r in runtime), \
               f'an unexpected runtime dependency appeared: {runtime}'
-          import pyyahoo
-          print('pyyahoo imports with only curl_cffi present')
+          import finyahoo
+          print('finyahoo imports with only curl_cffi present')
           "
 
       - name: Confirm a user's type checker can see the hints
         # Every hint in this package is invisible to a user unless py.typed ships
         # alongside it (PEP 561), and the source cannot answer whether it did:
-        # src/pyyahoo/py.typed can sit in git while the built wheel omits it. So ask
+        # src/finyahoo/py.typed can sit in git while the built wheel omits it. So ask
         # it the way a user does -- install the built package into a clean
         # environment and run their checker over their code.
         run: |
           uv venv /tmp/typed --python ${{ matrix.python-version }}
           uv pip install --python /tmp/typed/bin/python . mypy
           cat > /tmp/user_code.py <<'PY'
-          from pyyahoo import YahooClient
+          from finyahoo import YahooClient
 
           # start is typed date | None; a string is neither.
           YahooClient().fetch_history("AAPL", start="2020-01-01")

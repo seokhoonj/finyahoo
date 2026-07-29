@@ -10,8 +10,8 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from pyyahoo import YahooParseError
-from pyyahoo.payload import (
+from finyahoo import YahooParseError
+from finyahoo.payload import (
     as_number,
     each_dict,
     epoch_to_date,

@@ -1,12 +1,12 @@
-"""Command-line shell over ``YahooClient`` -- ``pyyahoo history`` / ``pyyahoo profile``.
+"""Command-line shell over ``YahooClient`` -- ``finyahoo history`` / ``finyahoo profile``.
 
 The shell over the shell: it parses ``argv``, runs one library read, and renders the
 typed result as text (or ``--json``). All data-shape knowledge stays in the library --
 this only formats what the library returns -- and it is stdlib-only, so the package's
 single runtime dependency (``curl_cffi``) is not widened by having a CLI.
 
-    $ pyyahoo history AAPL --start 2024-01-01
-    $ pyyahoo profile ^GSPC --json
+    $ finyahoo history AAPL --start 2024-01-01
+    $ finyahoo profile ^GSPC --json
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     A domain failure -- an unknown symbol, a 429 block, a shape that drifted, or an
     invalid date range (``start`` after ``end``) -- is printed as a one-line
-    ``pyyahoo: <message>`` to stderr and returns 1, so a shell caller sees a clean
+    ``finyahoo: <message>`` to stderr and returns 1, so a shell caller sees a clean
     error rather than a traceback. Argparse handles a bad flag or a missing
     subcommand itself (exit 2).
     """
@@ -49,13 +49,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     # caller-bug signal (start > end). The renderers are empty-safe, so no other
     # ValueError reaches here to be misclassified as a domain failure.
     except (YahooError, ValueError) as err:
-        print(f"pyyahoo: {err}", file=sys.stderr)
+        print(f"finyahoo: {err}", file=sys.stderr)
         return 1
 
 
 def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="pyyahoo", description="Read Yahoo Finance from the command line.")
+        prog="finyahoo", description="Read Yahoo Finance from the command line.")
     commands = parser.add_subparsers(required=True)
 
     history = commands.add_parser(

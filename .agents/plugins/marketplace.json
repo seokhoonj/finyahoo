@@ -1,10 +1,10 @@
 {
-  "name": "pyyahoo",
-  "interface": { "displayName": "pyyahoo" },
+  "name": "finyahoo",
+  "interface": { "displayName": "finyahoo" },
   "plugins": [
     {
-      "name": "pyyahoo",
-      "source": { "source": "local", "path": "./plugins/pyyahoo" },
+      "name": "finyahoo",
+      "source": { "source": "local", "path": "./plugins/finyahoo" },
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
     }

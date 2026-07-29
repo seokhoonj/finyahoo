@@ -7,8 +7,8 @@ being absent (fields None, no AttributeError), and a horizon Yahoo nulls.
 
 import pytest
 
-from pyyahoo import InsightReport, Insights, YahooParseError, YahooRequestError
-from pyyahoo.insights import parse_insights
+from finyahoo import InsightReport, Insights, YahooParseError, YahooRequestError
+from finyahoo.insights import parse_insights
 
 _FULL = """
 {"finance": {"error": null, "result": {

@@ -1,15 +1,15 @@
 {
-  "name": "pyyahoo",
+  "name": "finyahoo",
   "owner": { "name": "seokhoonj" },
   "description": "Read prices and fundamentals from Yahoo Finance",
   "plugins": [
     {
-      "name": "pyyahoo",
-      "displayName": "pyyahoo",
-      "source": "./plugins/pyyahoo",
+      "name": "finyahoo",
+      "displayName": "finyahoo",
+      "source": "./plugins/finyahoo",
       "description": "Read prices and fundamentals from Yahoo Finance",
       "author": { "name": "seokhoonj" },
-      "homepage": "https://github.com/seokhoonj/pyyahoo",
+      "homepage": "https://github.com/seokhoonj/finyahoo",
       "category": "Productivity",
       "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals"]
     }

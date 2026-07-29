@@ -8,8 +8,8 @@ unknown ticker returns.
 
 import pytest
 
-from pyyahoo import Profile, YahooParseError, YahooRequestError
-from pyyahoo.profile import parse_profile
+from finyahoo import Profile, YahooParseError, YahooRequestError
+from finyahoo.profile import parse_profile
 
 _FULL = """
 {"quoteSummary": {"error": null, "result": [{

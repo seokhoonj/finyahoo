@@ -2,7 +2,7 @@
 
 The CLI is a thin shell over YahooClient, so the client is faked and its canned
 result is rendered; the tests pin the text/JSON output, the error contract (a domain
-failure becomes `pyyahoo: ...` on stderr and exit 1), and argparse's own guards.
+failure becomes `finyahoo: ...` on stderr and exit 1), and argparse's own guards.
 """
 
 import json
@@ -12,10 +12,10 @@ from datetime import date
 
 import pytest
 
-from pyyahoo import Timeframe, YahooRequestError
-from pyyahoo.cli import main
-from pyyahoo.price import Dividend, PriceBar, PriceHistory, Split
-from pyyahoo.profile import Profile
+from finyahoo import Timeframe, YahooRequestError
+from finyahoo.cli import main
+from finyahoo.price import Dividend, PriceBar, PriceHistory, Split
+from finyahoo.profile import Profile
 
 _HISTORY = PriceHistory(
     symbol="AAPL",
@@ -66,7 +66,7 @@ class _FakeYahoo:
 
 
 def _install_fake_yahoo_client(monkeypatch, **kwargs):
-    monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(**kwargs))
+    monkeypatch.setattr("finyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(**kwargs))
 
 
 def test_history_text_shows_the_summary_and_recent_bars(monkeypatch, capsys):
@@ -114,7 +114,7 @@ def test_a_domain_error_is_one_line_on_stderr_and_exit_1(monkeypatch, capsys):
     assert main(["history", "NOSUCH"]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert captured.err.strip() == "pyyahoo: Not Found"
+    assert captured.err.strip() == "finyahoo: Not Found"
 
 
 def test_history_forwards_symbol_start_end_and_timeframe(monkeypatch):
@@ -127,7 +127,7 @@ def test_history_forwards_symbol_start_end_and_timeframe(monkeypatch):
             calls.append((symbol, kwargs))
             return _HISTORY
 
-    monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _Recorder(history=_HISTORY))
+    monkeypatch.setattr("finyahoo.cli.YahooClient", lambda *a, **k: _Recorder(history=_HISTORY))
     exit_code = main(["history", "AAPL", "--start", "2024-01-01",
                       "--end", "2024-01-31", "--timeframe", "week"])
     assert exit_code == 0
@@ -142,7 +142,7 @@ def test_history_text_prints_the_five_most_recent_bars_oldest_first(monkeypatch,
         PriceBar(date(2024, 1, day), 1.0, 1.0, 1.0, 1.0, 1.0, 1) for day in range(1, 7)
     )
     history = PriceHistory(symbol="AAPL", bars=bars, splits=(), dividends=())
-    monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(history=history))
+    monkeypatch.setattr("finyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(history=history))
     assert main(["history", "AAPL"]) == 0
     out = capsys.readouterr().out
     assert "2024-01-01" not in out                       # the oldest bar is dropped
@@ -161,7 +161,7 @@ def test_profile_text_with_all_fields_missing_prints_only_the_symbol(monkeypatch
         profit_margin=None, operating_margin=None, return_on_equity=None,
         fifty_two_week_high=None, fifty_two_week_low=None, beta=None,
     )
-    monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(profile=bare))
+    monkeypatch.setattr("finyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(profile=bare))
     assert main(["profile", "^GSPC"]) == 0
     assert capsys.readouterr().out.strip() == "symbol  ^GSPC"
 
@@ -182,8 +182,8 @@ def test_no_subcommand_exits_nonzero():
         main([])
 
 
-def test_python_m_pyyahoo_propagates_the_exit_code():
-    """`python -m pyyahoo` runs the CLI and returns its exit code; a missing subcommand
+def test_python_m_finyahoo_propagates_the_exit_code():
+    """`python -m finyahoo` runs the CLI and returns its exit code; a missing subcommand
     is argparse's exit 2. End-to-end (subprocess), so the __main__ alias is exercised."""
-    result = subprocess.run([sys.executable, "-m", "pyyahoo"], capture_output=True)
+    result = subprocess.run([sys.executable, "-m", "finyahoo"], capture_output=True)
     assert result.returncode == 2

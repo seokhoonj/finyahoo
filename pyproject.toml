@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pyyahoo"
+name = "finyahoo"
 version = "0.1.0"
 description = "Read prices and fundamentals from Yahoo Finance's undocumented endpoints through one typed client."
 readme = "README.md"
@@ -38,10 +38,10 @@ dev = [
 # The CLI is stdlib-only (argparse + json), so it adds no runtime dependency -- the
 # reusable check asserts curl_cffi stays the only one.
 [project.scripts]
-pyyahoo = "pyyahoo.cli:main"
+finyahoo = "finyahoo.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pyyahoo"]
+packages = ["src/finyahoo"]
 
 [tool.ruff]
 line-length = 100

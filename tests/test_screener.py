@@ -7,8 +7,8 @@ match total, and the error envelope.
 
 import pytest
 
-from pyyahoo import Quote, Screen, YahooParseError, YahooRequestError
-from pyyahoo.screener import parse_screener
+from finyahoo import Quote, Screen, YahooParseError, YahooRequestError
+from finyahoo.screener import parse_screener
 
 _SCREEN = """
 {"finance": {"error": null, "result": [{

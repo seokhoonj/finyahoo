@@ -10,8 +10,8 @@ from datetime import date
 
 import pytest
 
-from pyyahoo import FinancialSeries, YahooParseError, YahooRequestError
-from pyyahoo.timeseries import parse_timeseries
+from finyahoo import FinancialSeries, YahooParseError, YahooRequestError
+from finyahoo.timeseries import parse_timeseries
 
 _TWO_TYPES = """
 {"timeseries": {"error": null, "result": [

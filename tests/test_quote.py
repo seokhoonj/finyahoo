@@ -7,8 +7,8 @@ envelope.
 
 import pytest
 
-from pyyahoo import Quote, YahooParseError, YahooRequestError
-from pyyahoo.quote import parse_quotes
+from finyahoo import Quote, YahooParseError, YahooRequestError
+from finyahoo.quote import parse_quotes
 
 _TWO = """
 {"quoteResponse": {"error": null, "result": [
