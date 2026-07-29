@@ -9,10 +9,8 @@
 
 Read prices and fundamentals from Yahoo Finance through one typed client.
 
-Yahoo publishes **no official API**. pyyahoo reaches the same undocumented JSON
-endpoints the finance.yahoo.com web app uses and models their responses as typed
-results. Those endpoints can change without notice, so the parsers fail loudly
-rather than silently when a shape shifts.
+OHLCV history, live quotes, fundamentals, options, and screeners — one client
+reaches them all, each returned as a typed result.
 
 ```python
 from datetime import date
@@ -27,7 +25,7 @@ with YahooClient() as yahoo:
     print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
-## What one client reaches
+## Methods
 
 | method | returns |
 |---|---|
@@ -52,7 +50,7 @@ with YahooClient() as yahoo:
   valuation, growth, margins). A snapshot as of now, not history; every numeric
   field is optional and a missing one is `None`, never `0`.
 
-Symbols are Yahoo tickers: a US stock is bare (`MU`), a Korean one carries the
+Symbols are Yahoo tickers: a US stock is bare (`AAPL`), a Korean one carries the
 market suffix (`005930.KS` KOSPI, `.KQ` KOSDAQ), an index is caret-prefixed
 (`^GSPC`). A delisted or unknown ticker raises `YahooRequestError`, not an empty
 result.

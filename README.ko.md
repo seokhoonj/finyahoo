@@ -7,12 +7,10 @@
 
 [English](README.md) | **한국어**
 
-Yahoo Finance에서 시세와 기업정보를 하나의 타입드 클라이언트로 읽는다.
+Yahoo Finance의 시세와 기업정보를 타입이 지정된 하나의 클라이언트로 읽습니다.
 
-Yahoo는 **공식 API가 없다.** pyyahoo는 finance.yahoo.com 웹앱이 내부적으로 쓰는
-문서 없는(undocumented) JSON 엔드포인트를 그대로 호출하고, 응답을 타입드
-결과로 모델링한다. 이 엔드포인트들은 예고 없이 바뀔 수 있어서, 응답 모양이
-달라지면 파서가 조용히 비는 대신 명확히 실패한다.
+OHLCV 시세 이력, 실시간 시세, 기업 펀더멘털, 옵션, 스크리너를 한 클라이언트로
+가져오고, 결과는 전부 타입이 지정된 객체로 돌려받습니다.
 
 ```python
 from datetime import date
@@ -27,7 +25,7 @@ with YahooClient() as yahoo:
     print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
-## 하나의 클라이언트가 닿는 곳
+## 메서드
 
 | 메서드 | 반환 |
 |---|---|
@@ -45,16 +43,15 @@ with YahooClient() as yahoo:
 ### 핵심 두 가지
 
 - `fetch_history` — `PriceHistory`: OHLCV 봉(`close`는 수정주가, `adj_close`는 배당까지
-  반영), 그리고 같은 구간에 있었던 `Split`·`Dividend` 이벤트를 데이터로 함께
-  담는다. 양 끝 경계는 포함(inclusive)이고, 둘 다 기본값은 Yahoo가 가진 가장 넓은
-  구간이다.
-- `fetch_profile` — `Profile`: 기업의 현재 펀더멘털(섹터·규모·밸류에이션·성장·마진).
-  이력이 아니라 지금 시점 스냅샷이며, 모든 수치 필드는 옵셔널이라 없는 값은 `0`이
-  아니라 `None`이다.
+  반영)과, 같은 구간에 있었던 `Split`·`Dividend` 이벤트를 데이터로 함께 담습니다. 양
+  끝 경계는 포함(inclusive)이며, 둘 다 기본값은 Yahoo가 가진 가장 넓은 구간입니다.
+- `fetch_profile` — `Profile`: 기업의 현재 펀더멘털(섹터·규모·밸류에이션·성장·마진)
+  입니다. 이력이 아니라 지금 시점의 스냅샷이며, 모든 수치 필드는 선택적이라 없는 값은
+  `0`이 아니라 `None`입니다.
 
-심볼은 Yahoo 티커다: 미국주는 그대로(`MU`), 한국주는 시장 접미사(`005930.KS` 코스피,
-`.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`). 폐지·미상 티커는 빈 결과가 아니라
-`YahooRequestError`를 낸다.
+심볼은 Yahoo 티커입니다: 미국주는 그대로(`AAPL`), 한국주는 시장 접미사(`005930.KS`
+코스피, `.KQ` 코스닥), 지수는 캐럿 접두(`^GSPC`)를 씁니다. 폐지·미상 티커는 빈 결과가
+아니라 `YahooRequestError`를 냅니다.
 
 ## 설치
 
@@ -62,7 +59,7 @@ with YahooClient() as yahoo:
 pip install pyyahoo
 ```
 
-Python 3.11 이상 필요.
+Python 3.11 이상이 필요합니다.
 
 ## 라이선스
 
