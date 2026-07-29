@@ -150,6 +150,27 @@ def test_context_manager_closes_on_exit():
     assert session.closed
 
 
+def test_the_session_is_released_when_the_client_is_garbage_collected(monkeypatch):
+    """A caller who never calls close() or uses a with-block still leaks no
+    connection: the session is finalized when the client is collected."""
+    import gc
+
+    closed: list[bool] = []
+
+    class _SpySession:
+        def __init__(self, *, impersonate=None):
+            pass
+
+        def close(self) -> None:
+            closed.append(True)
+
+    monkeypatch.setattr(cffi_requests, "Session", _SpySession)
+    client = YahooClient()
+    del client
+    gc.collect()
+    assert closed == [True]
+
+
 def test_the_session_impersonates_chrome(monkeypatch):
     """The client only gets past Yahoo's TLS gating because the session presents
     Chrome's handshake; a plain session is fingerprinted and blocked. This is the

@@ -26,14 +26,14 @@ Python 3.11 이상이 필요합니다.
 from datetime import date
 from finyahoo import YahooClient
 
-with YahooClient() as yahoo:
-    history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
-    latest = history.bars[-1]
-    print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
-    print(len(history.splits), "splits,", len(history.dividends), "dividends")
+yahoo = YahooClient()
+history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
+latest = history.bars[-1]
+print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
+print(len(history.splits), "splits,", len(history.dividends), "dividends")
 
-    profile = yahoo.fetch_profile("AAPL")
-    print(profile.sector, profile.market_cap, profile.trailing_pe)
+profile = yahoo.fetch_profile("AAPL")
+print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
 심볼은 Yahoo 티커입니다: 미국주는 그대로(`AAPL`), 한국주는 시장 접미사(`005930.KS`
@@ -66,14 +66,16 @@ with YahooClient() as yahoo:
 
 ## 4. 클라이언트 옵션
 
-```python
-with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
-    ...
-```
+`YahooClient`는 두 개의 선택 설정을 받습니다(둘 다 키워드 전용):
 
-`timeout`은 요청당 제한 시간(초)이고, `delay_seconds`는 연속 요청 사이의 간격으로
-여러 심볼을 잇달아 읽을 때 도움이 됩니다. `with` 블록 밖에서 쓸 때는 끝난 뒤
-`yahoo.close()`를 호출하세요.
+| 인자 | 기본값 | 하는 일 |
+|---|---|---|
+| `timeout` | `30.0` | 요청당 제한 시간(초) |
+| `delay_seconds` | `0.5` | 연속 요청 사이의 간격; 여러 심볼을 잇달아 읽다가 요청 제한에 걸리면 늘리세요 |
+
+```python
+yahoo = YahooClient(timeout=10, delay_seconds=1.0)
+```
 
 ## 5. 데이터프레임
 

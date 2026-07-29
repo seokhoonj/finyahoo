@@ -27,14 +27,14 @@ Requires Python 3.11+.
 from datetime import date
 from finyahoo import YahooClient
 
-with YahooClient() as yahoo:
-    history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
-    latest = history.bars[-1]
-    print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
-    print(len(history.splits), "splits,", len(history.dividends), "dividends")
+yahoo = YahooClient()
+history = yahoo.fetch_history("AAPL", start=date(2020, 1, 1))
+latest = history.bars[-1]
+print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
+print(len(history.splits), "splits,", len(history.dividends), "dividends")
 
-    profile = yahoo.fetch_profile("AAPL")
-    print(profile.sector, profile.market_cap, profile.trailing_pe)
+profile = yahoo.fetch_profile("AAPL")
+print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
 Symbols are Yahoo tickers: a US stock is bare (`AAPL`), a Korean one carries the
@@ -69,14 +69,16 @@ result.
 
 ## 4. Client options
 
-```python
-with YahooClient(timeout=30.0, delay_seconds=0.5) as yahoo:
-    ...
-```
+`YahooClient` takes two optional keyword-only settings:
 
-`timeout` is the per-request timeout in seconds; `delay_seconds` spaces consecutive
-requests, which helps when reading many symbols in a row. Outside a `with` block,
-call `yahoo.close()` when done.
+| argument | default | what it does |
+|---|---|---|
+| `timeout` | `30.0` | per-request timeout, in seconds |
+| `delay_seconds` | `0.5` | pause between consecutive requests; raise it if reading many symbols in a row runs into rate limits |
+
+```python
+yahoo = YahooClient(timeout=10, delay_seconds=1.0)
+```
 
 ## 5. DataFrames
 

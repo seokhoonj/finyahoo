@@ -29,6 +29,7 @@ against on the low end.
 from __future__ import annotations
 
 import time
+import weakref
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
 from types import TracebackType
@@ -114,12 +115,24 @@ class YahooClient:
         self._session: requests.Session[Any] = requests.Session(impersonate=_IMPERSONATE)
         self._crumb: str | None = None
         self._next_request_at = 0.0
+        # Release the session when the client is garbage-collected, so a caller who
+        # never closes it leaks no connection. This is the self-cleanup pattern
+        # tempfile.TemporaryDirectory and urllib3's connection pool use; close() and
+        # the context manager stay available for releasing it at a chosen moment.
+        self._finalizer = weakref.finalize(self, self._session.close)
 
     def __repr__(self) -> str:
         return f"YahooClient(delay_seconds={self.delay_seconds})"
 
     def close(self) -> None:
-        """Close the underlying HTTP session (also called on context exit)."""
+        """Release the HTTP session now.
+
+        Rarely needed: the session is also released automatically when the client
+        is garbage-collected, so a script or notebook need not call this. Use it (or
+        the context manager) only to free the connection at a deterministic point --
+        e.g. a long-running process that creates many clients. Idempotent.
+        """
+        self._finalizer.detach()
         self._session.close()
 
     def __enter__(self) -> YahooClient:
