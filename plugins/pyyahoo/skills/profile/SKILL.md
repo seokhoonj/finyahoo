@@ -54,5 +54,5 @@ Every numeric field is optional -- a missing one is null, never `0`.
 ## What this skill does not do
 
 - It does not re-implement fetching or parsing (the package does); it always calls the CLI.
-- It is a current snapshot only -- for dated financial history use `pyyahoo timeseries`
-  (library) or the `history` skill for prices.
+- It is a current snapshot only -- for dated financial history use the library's
+  `YahooClient.fetch_timeseries(...)`, or the `history` skill for prices.

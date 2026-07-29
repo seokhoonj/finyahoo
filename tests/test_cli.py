@@ -6,11 +6,13 @@ failure becomes `pyyahoo: ...` on stderr and exit 1), and argparse's own guards.
 """
 
 import json
+import subprocess
+import sys
 from datetime import date
 
 import pytest
 
-from pyyahoo import YahooRequestError
+from pyyahoo import Timeframe, YahooRequestError
 from pyyahoo.cli import main
 from pyyahoo.price import Dividend, PriceBar, PriceHistory, Split
 from pyyahoo.profile import Profile
@@ -63,12 +65,12 @@ class _FakeYahoo:
         return self._profile
 
 
-def _install(monkeypatch, **kwargs):
+def _install_fake_yahoo_client(monkeypatch, **kwargs):
     monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(**kwargs))
 
 
 def test_history_text_shows_the_summary_and_recent_bars(monkeypatch, capsys):
-    _install(monkeypatch, history=_HISTORY)
+    _install_fake_yahoo_client(monkeypatch, history=_HISTORY)
     assert main(["history", "AAPL"]) == 0
     out = capsys.readouterr().out
     assert "AAPL  2 bars  (1 splits, 1 dividends)" in out
@@ -77,7 +79,7 @@ def test_history_text_shows_the_summary_and_recent_bars(monkeypatch, capsys):
 
 
 def test_history_json_is_valid_and_carries_the_bars(monkeypatch, capsys):
-    _install(monkeypatch, history=_HISTORY)
+    _install_fake_yahoo_client(monkeypatch, history=_HISTORY)
     assert main(["history", "AAPL", "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["symbol"] == "AAPL"
@@ -86,13 +88,13 @@ def test_history_json_is_valid_and_carries_the_bars(monkeypatch, capsys):
 
 
 def test_history_with_no_bars_says_so(monkeypatch, capsys):
-    _install(monkeypatch, history=_EMPTY_HISTORY)
+    _install_fake_yahoo_client(monkeypatch, history=_EMPTY_HISTORY)
     assert main(["history", "MU"]) == 0
     assert "no bars in range" in capsys.readouterr().out
 
 
 def test_profile_text_skips_none_fields(monkeypatch, capsys):
-    _install(monkeypatch, profile=_PROFILE)
+    _install_fake_yahoo_client(monkeypatch, profile=_PROFILE)
     assert main(["profile", "AAPL"]) == 0
     out = capsys.readouterr().out
     assert "sector" in out and "Technology" in out
@@ -100,7 +102,7 @@ def test_profile_text_skips_none_fields(monkeypatch, capsys):
 
 
 def test_profile_json_carries_every_field(monkeypatch, capsys):
-    _install(monkeypatch, profile=_PROFILE)
+    _install_fake_yahoo_client(monkeypatch, profile=_PROFILE)
     assert main(["profile", "AAPL", "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["name"] == "Apple Inc."
@@ -108,32 +110,80 @@ def test_profile_json_carries_every_field(monkeypatch, capsys):
 
 
 def test_a_domain_error_is_one_line_on_stderr_and_exit_1(monkeypatch, capsys):
-    _install(monkeypatch, error=YahooRequestError("Not Found"))
+    _install_fake_yahoo_client(monkeypatch, error=YahooRequestError("Not Found"))
     assert main(["history", "NOSUCH"]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err.strip() == "pyyahoo: Not Found"
 
 
-def test_timeframe_word_maps_to_the_enum(monkeypatch, capsys):
-    seen = {}
+def test_history_forwards_symbol_start_end_and_timeframe(monkeypatch):
+    """Every argument reaches fetch_history, not just the timeframe -- a dropped or
+    swapped symbol/start/end would otherwise ship green."""
+    calls = []
 
     class _Recorder(_FakeYahoo):
         def fetch_history(self, symbol, **kwargs):
-            seen.update(kwargs)
+            calls.append((symbol, kwargs))
             return _HISTORY
 
     monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _Recorder(history=_HISTORY))
-    from pyyahoo import Timeframe
-    assert main(["history", "AAPL", "--timeframe", "week"]) == 0
-    assert seen["timeframe"] is Timeframe.WEEK
+    exit_code = main(["history", "AAPL", "--start", "2024-01-01",
+                      "--end", "2024-01-31", "--timeframe", "week"])
+    assert exit_code == 0
+    assert calls == [("AAPL", {"start": date(2024, 1, 1), "end": date(2024, 1, 31),
+                               "timeframe": Timeframe.WEEK})]
 
 
-def test_a_bad_start_date_is_rejected_by_argparse(capsys):
+def test_history_text_prints_the_five_most_recent_bars_oldest_first(monkeypatch, capsys):
+    """The tail is the last five bars in ascending date order; the sixth-from-last is
+    dropped from the text view (the full series is only in --json)."""
+    bars = tuple(
+        PriceBar(date(2024, 1, day), 1.0, 1.0, 1.0, 1.0, 1.0, 1) for day in range(1, 7)
+    )
+    history = PriceHistory(symbol="AAPL", bars=bars, splits=(), dividends=())
+    monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(history=history))
+    assert main(["history", "AAPL"]) == 0
+    out = capsys.readouterr().out
+    assert "2024-01-01" not in out                       # the oldest bar is dropped
+    shown = [line for line in out.splitlines() if line.startswith("  2024-")]
+    assert [line.split()[0] for line in shown] == ["2024-01-02", "2024-01-03",
+                                                    "2024-01-04", "2024-01-05", "2024-01-06"]
+
+
+def test_profile_text_with_all_fields_missing_prints_only_the_symbol(monkeypatch, capsys):
+    """An index carries almost no fundamentals; with every optional field None the
+    render must still succeed (no empty-max crash) and print just the symbol."""
+    bare = Profile(
+        symbol="^GSPC", name=None, sector=None, industry=None, currency=None,
+        market_cap=None, shares_outstanding=None, trailing_pe=None, forward_pe=None,
+        price_to_book=None, trailing_eps=None, revenue_growth=None, earnings_growth=None,
+        profit_margin=None, operating_margin=None, return_on_equity=None,
+        fifty_two_week_high=None, fifty_two_week_low=None, beta=None,
+    )
+    monkeypatch.setattr("pyyahoo.cli.YahooClient", lambda *a, **k: _FakeYahoo(profile=bare))
+    assert main(["profile", "^GSPC"]) == 0
+    assert capsys.readouterr().out.strip() == "symbol  ^GSPC"
+
+
+def test_a_bad_start_date_is_rejected_by_argparse():
     with pytest.raises(SystemExit):
         main(["history", "AAPL", "--start", "not-a-date"])
+
+
+def test_an_invalid_timeframe_is_rejected_by_argparse():
+    """The choices= guard rejects a word outside day/week/month before any network."""
+    with pytest.raises(SystemExit):
+        main(["history", "AAPL", "--timeframe", "year"])
 
 
 def test_no_subcommand_exits_nonzero():
     with pytest.raises(SystemExit):
         main([])
+
+
+def test_python_m_pyyahoo_propagates_the_exit_code():
+    """`python -m pyyahoo` runs the CLI and returns its exit code; a missing subcommand
+    is argparse's exit 2. End-to-end (subprocess), so the __main__ alias is exercised."""
+    result = subprocess.run([sys.executable, "-m", "pyyahoo"], capture_output=True)
+    assert result.returncode == 2

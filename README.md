@@ -63,6 +63,52 @@ pip install pyyahoo
 
 Requires Python 3.11+.
 
+## Command line
+
+Installing the package puts a `pyyahoo` command on PATH (also `python -m pyyahoo`):
+
+```sh
+pyyahoo history AAPL --start 2024-01-01     # OHLCV bars + split/dividend events
+pyyahoo history ^GSPC --timeframe week      # weekly bars for an index
+pyyahoo profile AAPL                         # current fundamentals
+pyyahoo profile 005930.KS --json             # full snapshot as JSON
+```
+
+Both subcommands print a readable summary by default and the full result with
+`--json`; `pyyahoo history --help` / `pyyahoo profile --help` list the flags.
+
+## Use it from an AI coding agent
+
+This repo doubles as a plugin marketplace for Claude Code and Codex, exposing
+`history` and `profile` as skills that shell out to the `pyyahoo` command — so
+install the package first (above); no key or login is involved.
+
+### Claude Code
+
+```
+/plugin marketplace add seokhoonj/pyyahoo
+/plugin install pyyahoo@pyyahoo
+```
+
+Then ask in plain words ("show AAPL's profile"), or invoke a skill explicitly —
+`/pyyahoo:history ^GSPC`, `/pyyahoo:profile AAPL`.
+
+### Codex
+
+```
+codex plugin marketplace add seokhoonj/pyyahoo
+codex plugin add pyyahoo@pyyahoo
+```
+
+The `history` / `profile` skills trigger on a symbol, or run `pyyahoo history <symbol>`
+directly.
+
+Prefer no plugin? Symlink a skill into your skills directory and call it bare (`/history`):
+
+```sh
+ln -s "$PWD/plugins/pyyahoo/skills/history" ~/.claude/skills/history
+```
+
 ## License
 
 MIT

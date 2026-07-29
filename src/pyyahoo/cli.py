@@ -15,7 +15,7 @@ import argparse
 import dataclasses
 import json
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import date
 
 from .client import YahooClient
@@ -32,24 +32,28 @@ _TIMEFRAMES = {"day": Timeframe.DAY, "week": Timeframe.WEEK, "month": Timeframe.
 _RECENT_BARS = 5
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """Parse ``argv``, run one read, and return a process exit code.
 
-    A domain failure -- an unknown symbol, a 429 block, a shape that drifted -- is
-    printed as a one-line ``pyyahoo: <message>`` to stderr and returns 1, so a shell
-    caller sees a clean error rather than a traceback. Argparse handles a bad flag or
-    a missing subcommand itself (exit 2).
+    A domain failure -- an unknown symbol, a 429 block, a shape that drifted, or an
+    invalid date range (``start`` after ``end``) -- is printed as a one-line
+    ``pyyahoo: <message>`` to stderr and returns 1, so a shell caller sees a clean
+    error rather than a traceback. Argparse handles a bad flag or a missing
+    subcommand itself (exit 2).
     """
-    args = _build_parser().parse_args(argv)
+    args = _make_parser().parse_args(argv)
     run: Callable[[argparse.Namespace], int] = args.run
     try:
         return run(args)
+    # YahooError is every domain failure; ValueError is the client's one documented
+    # caller-bug signal (start > end). The renderers are empty-safe, so no other
+    # ValueError reaches here to be misclassified as a domain failure.
     except (YahooError, ValueError) as err:
         print(f"pyyahoo: {err}", file=sys.stderr)
         return 1
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pyyahoo", description="Read Yahoo Finance from the command line.")
     commands = parser.add_subparsers(required=True)
@@ -93,7 +97,20 @@ def _run_profile(args: argparse.Namespace) -> int:
 
 def _to_json(result: PriceHistory | Profile) -> str:
     """A frozen result dataclass as indented JSON, dates rendered as ISO strings."""
-    return json.dumps(dataclasses.asdict(result), default=str, ensure_ascii=False, indent=2)
+    return json.dumps(dataclasses.asdict(result), default=_json_default,
+                      ensure_ascii=False, indent=2)
+
+
+def _json_default(value: object) -> str:
+    """Serialize a value json.dumps cannot: a date (or its datetime subclass) as ISO.
+
+    Explicit rather than a blanket ``str``, so a field of some new, genuinely
+    unserializable type fails loudly here instead of being stringified into whatever
+    ``str()`` happens to yield.
+    """
+    if isinstance(value, date):
+        return value.isoformat()
+    raise TypeError(f"{type(value).__name__} is not JSON-serializable")
 
 
 def _render_history(history: PriceHistory) -> str:
@@ -116,9 +133,11 @@ def _render_profile(profile: Profile) -> str:
     present = [(field.name, getattr(profile, field.name))
                for field in dataclasses.fields(profile)
                if getattr(profile, field.name) is not None]
-    width = max(len(name) for name, _ in present)
+    # symbol is always present, so `present` is never empty; default=0 keeps the
+    # width computation safe rather than leaning on that invariant.
+    width = max((len(name) for name, _ in present), default=0)
     return "\n".join(f"{name:<{width}}  {value}" for name, value in present)
 
 
-if __name__ == "__main__":       # python -m pyyahoo.cli
+if __name__ == "__main__":
     raise SystemExit(main())

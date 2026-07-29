@@ -61,6 +61,52 @@ pip install pyyahoo
 
 Python 3.11 이상이 필요합니다.
 
+## 명령줄
+
+패키지를 설치하면 `pyyahoo` 명령이 PATH에 등록됩니다 (`python -m pyyahoo`로도 실행).
+
+```sh
+pyyahoo history AAPL --start 2024-01-01     # OHLCV 봉 + 분할/배당 이벤트
+pyyahoo history ^GSPC --timeframe week      # 지수의 주봉
+pyyahoo profile AAPL                         # 현재 펀더멘털
+pyyahoo profile 005930.KS --json             # 전체 스냅샷을 JSON으로
+```
+
+두 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다.
+`pyyahoo history --help` / `pyyahoo profile --help`로 옵션을 확인하세요.
+
+## AI 코딩 에이전트에서 쓰기
+
+이 저장소는 Claude Code·Codex용 플러그인 마켓플레이스도 겸합니다 — `history`·`profile`을
+`pyyahoo` 명령을 호출하는 스킬로 제공합니다. 먼저 위에서 패키지를 설치하세요(키·로그인
+불필요).
+
+### Claude Code
+
+```
+/plugin marketplace add seokhoonj/pyyahoo
+/plugin install pyyahoo@pyyahoo
+```
+
+그런 다음 평범하게 물어보거나("AAPL 프로파일 보여줘"), 스킬을 직접 호출하세요 —
+`/pyyahoo:history ^GSPC`, `/pyyahoo:profile AAPL`.
+
+### Codex
+
+```
+codex plugin marketplace add seokhoonj/pyyahoo
+codex plugin add pyyahoo@pyyahoo
+```
+
+`history`·`profile` 스킬은 심볼에 반응하며, `pyyahoo history <symbol>`로 직접 실행해도
+됩니다.
+
+플러그인 없이 쓰려면? 스킬을 스킬 디렉터리에 symlink해 bare 형식(`/history`)으로 부르세요:
+
+```sh
+ln -s "$PWD/plugins/pyyahoo/skills/history" ~/.claude/skills/history
+```
+
 ## 라이선스
 
 MIT
