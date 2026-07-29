@@ -17,7 +17,7 @@ from datetime import date
 from typing import Any
 
 from .errors import YahooParseError
-from .payload import as_number, iso_to_date, unwrap_result
+from .payload import as_number, each_dict, iso_to_date, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,7 +92,7 @@ def parse_insights(payload: str, symbol: str) -> Insights:
                 published_on = iso_to_date(report.get("publishedOn")),
                 summary      = report.get("summary"),
             )
-            for report in result.get("reports", [])
+            for report in each_dict(result.get("reports", []), "insights reports")
         ),
     )
 

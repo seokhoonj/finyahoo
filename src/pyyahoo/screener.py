@@ -7,7 +7,7 @@ its members. Each member is a quote record in the same shape ``/v7/finance/quote
 returns, so the parsing is shared with ``quote.py`` -- a member is a ``Quote``.
 
 ``total`` is how many the screen matched; ``members`` is the page this request
-asked for (``count``), not necessarily all of them.
+asked for (``page_size``), not necessarily all of them.
 """
 
 from __future__ import annotations

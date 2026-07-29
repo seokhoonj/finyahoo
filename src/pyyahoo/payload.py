@@ -25,7 +25,7 @@ def load_json(payload: str, what: str) -> Any:
 
 
 def unwrap_result(payload: str, envelope: str, what: str, label: str,
-                  *, allow_empty: bool = False) -> Any:
+                  *, allow_empty: bool = False) -> object:
     """Unwrap the recurring ``{envelope: {result, error}}`` shape.
 
     Most endpoints (quote, options, recommendations, insights, screener) wrap their

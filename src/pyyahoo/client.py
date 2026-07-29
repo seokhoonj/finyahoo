@@ -190,6 +190,7 @@ class YahooClient:
         ``Quote`` per symbol, in Yahoo's order.
 
         Raises:
+            ValueError: ``symbols`` is empty (a caller bug).
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the quoteResponse shape.
@@ -225,6 +226,7 @@ class YahooClient:
         crumb.
 
         Raises:
+            ValueError: ``symbols`` is empty (a caller bug).
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the spark shape.
@@ -246,7 +248,8 @@ class YahooClient:
         history. Needs no crumb.
 
         Raises:
-            ValueError: ``start`` is after ``end`` (a caller bug).
+            ValueError: ``metric_types`` is empty, or ``start`` is after ``end``
+                (both caller bugs).
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the timeseries shape.
@@ -419,5 +422,10 @@ def _join_values(values: str | Sequence[str]) -> str:
     must reach Yahoo as ``AAPL``, never ``A,A,P,L``. Because ``str`` satisfies
     ``Sequence[str]``, joining without this guard would silently split one ticker
     into its letters and query the wrong symbols.
+
+    Empty input (``""`` or an empty sequence) is a caller bug caught here, rather
+    than sent as a blank argument that Yahoo answers with an empty, confusing result.
     """
+    if not values:
+        raise ValueError("at least one value is required")
     return values if isinstance(values, str) else ",".join(values)

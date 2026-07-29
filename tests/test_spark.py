@@ -53,3 +53,21 @@ def test_ragged_timestamp_and_close_lengths_raise_rather_than_truncate():
 def test_a_non_map_payload_raises_parse_error():
     with pytest.raises(YahooParseError):
         parse_spark('["not", "a", "map"]')
+
+
+def test_a_non_numeric_close_is_dropped_not_stored_in_the_float_field():
+    """A JSON true/string/box in the close array must not land in SparkPoint.close;
+    guarded by is_number like the chart parser, so it drops rather than lies."""
+    junk = """
+    {"AAPL": {"timestamp": [1700000000, 1700086400], "close": [190.0, true],
+              "chartPreviousClose": 189.0}}
+    """
+    aapl = parse_spark(junk)[0]
+    assert [p.close for p in aapl.points] == [pytest.approx(190.0)]
+
+
+def test_a_non_numeric_chart_previous_close_becomes_none():
+    """chartPreviousClose is a bare number; a bool or box must read as None, not a
+    fake reading in previous_close."""
+    boxed = '{"AAPL": {"timestamp": [], "close": [], "chartPreviousClose": {"raw": 1}}}'
+    assert parse_spark(boxed)[0].previous_close is None

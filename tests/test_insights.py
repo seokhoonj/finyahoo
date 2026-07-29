@@ -79,3 +79,18 @@ def test_error_envelope_raises_request_error():
 def test_non_insights_shape_raises_parse_error():
     with pytest.raises(YahooParseError):
         parse_insights('{"unexpected": "shape"}', "AAPL")
+
+
+def test_a_null_report_record_is_shape_drift():
+    """A null entry in reports must raise, not leak an AttributeError from report.get()
+    past the documented YahooParseError contract."""
+    null_report = '{"finance": {"error": null, "result": {"symbol": "AAPL", "reports": [null]}}}'
+    with pytest.raises(YahooParseError):
+        parse_insights(null_report, "AAPL")
+
+
+def test_a_non_numeric_target_price_becomes_none():
+    """A bare numeric field guarded by as_number: a bool must read as None."""
+    payload = ('{"finance": {"error": null, "result": {"symbol": "AAPL", '
+               '"instrumentInfo": {"recommendation": {"targetPrice": true}}, "reports": []}}}')
+    assert parse_insights(payload, "AAPL").target_price is None

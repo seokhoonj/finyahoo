@@ -34,7 +34,7 @@ with YahooClient() as yahoo:
 | `fetch_history(symbol, *, start, end, timeframe)` | chart | | `PriceHistory` — OHLCV 봉 + `Split`/`Dividend` 이벤트 |
 | `fetch_profile(symbol)` | quoteSummary | ✓ | `Profile` — 현재 펀더멘털 스냅샷 |
 | `fetch_quotes(symbols)` | quote | ✓ | `tuple[Quote]` — 종목별 실시간 스냅샷 |
-| `fetch_search(query)` | search | | `Search` — 종목 매칭 + 관련 뉴스 |
+| `fetch_search(query, *, quotes_count, news_count)` | search | | `Search` — 종목 매칭 + 관련 뉴스 |
 | `fetch_timeseries(symbol, metric_types, *, start, end)` | timeseries | | `tuple[FinancialSeries]` — 날짜 있는 재무 항목 |
 | `fetch_spark(symbols, *, period, interval)` | spark | | `tuple[Spark]` — 종목별 간이 종가 시계열 |
 | `fetch_options(symbol, *, expiration)` | options | ✓ | `OptionChain` — 한 만기의 콜/풋 |

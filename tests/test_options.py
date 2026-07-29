@@ -82,3 +82,29 @@ def test_a_result_without_an_options_block_is_shape_drift():
     no_block = '{"optionChain": {"error": null, "result": [{"underlyingSymbol": "AAPL"}]}}'
     with pytest.raises(YahooParseError):
         parse_options(no_block)
+
+
+def test_a_non_list_options_block_is_shape_drift():
+    """options drifting to a non-list must raise, not leak a KeyError/TypeError from
+    chains[0] past the documented YahooParseError contract."""
+    drifted = '{"optionChain": {"error": null, "result": [{"underlyingSymbol": "AAPL", "options": {}}]}}'
+    with pytest.raises(YahooParseError):
+        parse_options(drifted)
+
+
+def test_a_null_contract_row_is_shape_drift():
+    """A null entry in calls/puts must raise, not leak an AttributeError from a later
+    row.get() past the contract."""
+    null_call = """
+    {"optionChain": {"error": null, "result": [{"underlyingSymbol": "AAPL",
+      "options": [{"expirationDate": 1735084800, "calls": [null], "puts": []}]}]}}
+    """
+    with pytest.raises(YahooParseError):
+        parse_options(null_call)
+
+
+def test_change_percent_field_is_populated_matching_quote_naming():
+    """Pins the percent_change -> change_percent rename (parallel with Quote)."""
+    call = parse_options(_CHAIN).calls[0]
+    assert call.change_percent is None or isinstance(call.change_percent, float)
+    assert hasattr(call, "change_percent") and not hasattr(call, "percent_change")

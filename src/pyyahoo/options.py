@@ -19,6 +19,7 @@ from typing import Any
 from .errors import YahooParseError
 from .payload import (
     as_number,
+    each_dict,
     epoch_to_date,
     epoch_to_datetime,
     first_dict,
@@ -84,7 +85,9 @@ def parse_options(payload: str) -> OptionChain:
     # a real underlying that lists no options, and yields an empty chain.
     if "options" not in result:
         raise YahooParseError("optionChain result has no options block")
-    chains = result["options"]
+    # An empty options list is a real underlying with no chain; a non-empty one must
+    # carry an object first element, so drift there fails loudly like the outer result.
+    chains = each_dict(result["options"], "options")
     chain = chains[0] if chains else {}
     return OptionChain(
         underlying       = result.get("underlyingSymbol", ""),
@@ -94,8 +97,8 @@ def parse_options(payload: str) -> OptionChain:
         ),
         strikes          = tuple(s for s in result.get("strikes", []) if is_number(s)),
         expiration       = epoch_to_date(chain.get("expirationDate")),
-        calls            = _parse_contracts(chain.get("calls") or []),
-        puts             = _parse_contracts(chain.get("puts") or []),
+        calls            = _parse_contracts(each_dict(chain.get("calls") or [], "options calls")),
+        puts             = _parse_contracts(each_dict(chain.get("puts") or [], "options puts")),
     )
 
 

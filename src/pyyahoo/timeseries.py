@@ -83,9 +83,9 @@ def _series_metric(entry: dict[str, object]) -> str | None:
     data key, which is a legitimately empty series).
     """
     meta = entry.get("meta")
-    types = meta.get("type") if isinstance(meta, dict) else None
-    if isinstance(types, list) and types and isinstance(types[0], str):
-        return types[0]
+    metric_types = meta.get("type") if isinstance(meta, dict) else None
+    if isinstance(metric_types, list) and metric_types and isinstance(metric_types[0], str):
+        return metric_types[0]
     return None
 
 

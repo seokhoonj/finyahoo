@@ -34,7 +34,7 @@ with YahooClient() as yahoo:
 | `fetch_history(symbol, *, start, end, timeframe)` | chart | | `PriceHistory` — OHLCV bars + `Split`/`Dividend` events |
 | `fetch_profile(symbol)` | quoteSummary | ✓ | `Profile` — current fundamentals snapshot |
 | `fetch_quotes(symbols)` | quote | ✓ | `tuple[Quote]` — live snapshot per symbol |
-| `fetch_search(query)` | search | | `Search` — symbol matches + related news |
+| `fetch_search(query, *, quotes_count, news_count)` | search | | `Search` — symbol matches + related news |
 | `fetch_timeseries(symbol, metric_types, *, start, end)` | timeseries | | `tuple[FinancialSeries]` — dated financial line items |
 | `fetch_spark(symbols, *, period, interval)` | spark | | `tuple[Spark]` — compact close series per symbol |
 | `fetch_options(symbol, *, expiration)` | options | ✓ | `OptionChain` — calls/puts for one expiration |

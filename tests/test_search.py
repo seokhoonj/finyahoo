@@ -50,3 +50,22 @@ def test_absent_news_is_empty_not_an_error():
 def test_a_payload_without_quotes_raises_parse_error():
     with pytest.raises(YahooParseError):
         parse_search('{"count": 0}', "apple")
+
+
+def test_type_display_field_is_populated():
+    """Pins the type_disp -> type_display rename."""
+    match = parse_search(_FULL, "apple").matches[0]
+    assert match.type_display == "Equity"
+    assert not hasattr(match, "type_disp")
+
+
+def test_related_tickers_keeps_only_strings():
+    """A non-string entry in relatedTickers is filtered, so the tuple[str, ...] hint
+    stays honest."""
+    payload = ('{"quotes": [], "news": [{"uuid": "x", "relatedTickers": ["AAPL", null, 5]}]}')
+    assert parse_search(payload, "q").news[0].related_tickers == ("AAPL",)
+
+
+def test_a_non_numeric_score_becomes_none():
+    payload = '{"quotes": [{"symbol": "AAPL", "score": true}], "news": []}'
+    assert parse_search(payload, "q").matches[0].score is None

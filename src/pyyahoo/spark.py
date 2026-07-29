@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Literal
 
 from .errors import YahooParseError
-from .payload import epoch_to_datetime, load_json
+from .payload import as_number, epoch_to_datetime, is_number, load_json
 
 # Yahoo's documented spark/chart vocabularies, as closed sets so an illegal value
 # fails at the call site rather than at Yahoo. `SparkPeriod` is the lookback window
@@ -78,11 +78,13 @@ def parse_spark(payload: str) -> tuple[Spark, ...]:
         points = tuple(
             SparkPoint(time=moment, close=close)
             for epoch, close in pairs
-            if (moment := epoch_to_datetime(epoch)) is not None and close is not None
+            # Test for a number, not just non-None, so a stray bool or boxed value
+            # never lands in the float `close` field (as the chart parser does).
+            if (moment := epoch_to_datetime(epoch)) is not None and is_number(close)
         )
         sparks.append(Spark(
             symbol         = symbol,
-            previous_close = series.get("chartPreviousClose"),
+            previous_close = as_number(series.get("chartPreviousClose")),
             points         = points,
         ))
     return tuple(sorted(sparks, key=lambda spark: spark.symbol))

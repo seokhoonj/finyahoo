@@ -14,7 +14,6 @@ import pytest
 from curl_cffi import requests as cffi_requests
 
 from pyyahoo import YahooBlockedError, YahooClient, YahooRequestError
-from pyyahoo.client import _to_epoch
 
 # A minimal but valid quoteSummary payload the profile parser accepts.
 _PROFILE_JSON = """
@@ -185,7 +184,7 @@ def test_a_5xx_is_retried_then_succeeds(_no_sleep):
         _FakeResponse(500, ""), _FakeResponse(500, ""), _FakeResponse(200, _CHART_EMPTY))
     history = _client(session).fetch_history("MU")
     assert history.bars == ()
-    assert _no_sleep == [2.0, 4.0]             # geometric backoff between three attempts
+    assert _no_sleep == pytest.approx([2.0, 4.0])   # geometric backoff between three attempts
 
 
 def test_a_transport_error_is_retried_then_succeeds(_no_sleep):
@@ -196,7 +195,7 @@ def test_a_transport_error_is_retried_then_succeeds(_no_sleep):
     history = _client(session).fetch_history("MU")
     assert history.bars == ()
     assert len(session.calls) == 2
-    assert _no_sleep == [2.0]
+    assert _no_sleep == pytest.approx([2.0])
 
 
 def test_exhausted_transport_errors_raise_request_error():
@@ -240,6 +239,15 @@ def test_fetch_quotes_with_one_symbol_string_is_not_split_into_letters():
     assert session.calls[-1]["params"]["symbols"] == "AAPL"
 
 
+def test_fetch_quotes_rejects_an_empty_symbol_sequence_before_any_request():
+    """An empty sequence is a caller bug caught at the boundary as ValueError, not a
+    blank query sent to Yahoo."""
+    session = _FakeSession()
+    with pytest.raises(ValueError):
+        _client(session).fetch_quotes([])
+    assert session.calls == []
+
+
 def test_fetch_spark_routes_to_the_spark_url_with_range_and_interval():
     session = _FakeSession(_FakeResponse(200, _SPARK_JSON))
     sparks = _client(session).fetch_spark("AAPL", period="1y", interval="1wk")
@@ -254,7 +262,7 @@ def test_fetch_search_routes_to_the_search_url_without_a_crumb():
     result = _client(session).fetch_search("apple")
     call = session.calls[-1]
     assert call["url"].endswith("/v1/finance/search")
-    assert call["params"]["q"] == "apple"
+    assert call["params"] == {"q": "apple", "quotesCount": 6, "newsCount": 4}
     assert "crumb" not in call["params"]
     assert result.matches[0].symbol == "AAPL"
 
@@ -300,4 +308,6 @@ def test_fetch_options_sends_a_date_only_when_an_expiration_is_given():
     with_exp = _FakeSession(
         _FakeResponse(404, ""), _FakeResponse(200, "c"), _FakeResponse(200, _OPTIONS_JSON))
     _client(with_exp).fetch_options("AAPL", expiration=date(2025, 1, 17))
-    assert with_exp.calls[-1]["params"]["date"] == _to_epoch(date(2025, 1, 17))
+    # The independently-known epoch of 2025-01-17 00:00 UTC, so a _to_epoch regression
+    # cannot move both sides together.
+    assert with_exp.calls[-1]["params"]["date"] == 1_737_072_000

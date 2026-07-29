@@ -87,3 +87,11 @@ def test_an_empty_result_is_no_matches_not_an_error():
     null error -- a legitimate 'no matches', so an empty tuple, not a parse error."""
     payload = '{"quoteResponse": {"error": null, "result": []}}'
     assert parse_quotes(payload) == ()
+
+
+def test_a_non_list_result_is_shape_drift():
+    """result drifting to a non-list must raise through the public parser, not only
+    when the helper is called directly."""
+    payload = '{"quoteResponse": {"error": null, "result": {"symbol": "AAPL"}}}'
+    with pytest.raises(YahooParseError):
+        parse_quotes(payload)
