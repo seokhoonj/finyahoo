@@ -7,7 +7,8 @@ shape, an absent news array, and a payload missing ``quotes`` entirely.
 
 import pytest
 
-from pyyahoo import Search, YahooParseError, parse_search
+from pyyahoo import Search, YahooParseError
+from pyyahoo.search import parse_search
 
 _FULL = """
 {"count": 2, "quotes": [
@@ -52,11 +53,10 @@ def test_a_payload_without_quotes_raises_parse_error():
         parse_search('{"count": 0}', "apple")
 
 
-def test_type_display_field_is_populated():
-    """Pins the type_disp -> type_display rename."""
+def test_type_display_carries_yahoos_type_disp():
+    """The type_display field carries Yahoo's typeDisp."""
     match = parse_search(_FULL, "apple").matches[0]
     assert match.type_display == "Equity"
-    assert not hasattr(match, "type_disp")
 
 
 def test_related_tickers_keeps_only_strings():

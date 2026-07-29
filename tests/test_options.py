@@ -9,7 +9,8 @@ from datetime import date
 
 import pytest
 
-from pyyahoo import OptionChain, YahooParseError, YahooRequestError, parse_options
+from pyyahoo import OptionChain, YahooParseError, YahooRequestError
+from pyyahoo.options import parse_options
 
 _CHAIN = """
 {"optionChain": {"error": null, "result": [{
@@ -103,8 +104,10 @@ def test_a_null_contract_row_is_shape_drift():
         parse_options(null_call)
 
 
-def test_change_percent_field_is_populated_matching_quote_naming():
-    """Pins the percent_change -> change_percent rename (parallel with Quote)."""
-    call = parse_options(_CHAIN).calls[0]
-    assert call.change_percent is None or isinstance(call.change_percent, float)
-    assert hasattr(call, "change_percent") and not hasattr(call, "percent_change")
+def test_change_percent_maps_from_yahoos_percent_change_field():
+    """The change_percent field carries Yahoo's percentChange (named to parallel
+    Quote.change_percent)."""
+    payload = ('{"optionChain": {"error": null, "result": [{"underlyingSymbol": "AAPL", '
+               '"options": [{"expirationDate": 1735084800, '
+               '"calls": [{"contractSymbol": "X", "percentChange": 2.5}], "puts": []}]}]}}')
+    assert parse_options(payload).calls[0].change_percent == pytest.approx(2.5)

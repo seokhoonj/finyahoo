@@ -7,7 +7,8 @@ being absent (fields None, no AttributeError), and a horizon Yahoo nulls.
 
 import pytest
 
-from pyyahoo import InsightReport, Insights, YahooParseError, YahooRequestError, parse_insights
+from pyyahoo import InsightReport, Insights, YahooParseError, YahooRequestError
+from pyyahoo.insights import parse_insights
 
 _FULL = """
 {"finance": {"error": null, "result": {
@@ -79,6 +80,13 @@ def test_error_envelope_raises_request_error():
 def test_non_insights_shape_raises_parse_error():
     with pytest.raises(YahooParseError):
         parse_insights('{"unexpected": "shape"}', "AAPL")
+
+
+def test_a_non_object_result_is_shape_drift():
+    """The insights result is a bare object; a drift to a list must raise rather than
+    fail later on result.get()."""
+    with pytest.raises(YahooParseError):
+        parse_insights('{"finance": {"error": null, "result": [1, 2, 3]}}', "AAPL")
 
 
 def test_a_null_report_record_is_shape_drift():

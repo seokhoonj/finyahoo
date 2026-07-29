@@ -1,7 +1,7 @@
 """Parsing Yahoo's search response into symbol matches and related news.
 
 Pure function of the payload -- no network. ``/v1/finance/search`` is symbol
-lookup: a free-text query in ("apple", "삼성전자", "005930"), a ranked list of
+lookup: a free-text query in ("apple", "Samsung", "005930"), a ranked list of
 matching securities out, plus the news headlines Yahoo attaches to the query. The
 top level is a bare object -- no ``{result, error}`` envelope -- so this walks it
 directly.

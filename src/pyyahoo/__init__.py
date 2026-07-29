@@ -34,23 +34,22 @@ from .errors import (
     YahooParseError,
     YahooRequestError,
 )
-from .insights import InsightReport, Insights, parse_insights
-from .options import OptionChain, OptionContract, parse_options
+from .insights import InsightReport, Insights
+from .options import OptionChain, OptionContract
 from .price import (
     Dividend,
     PriceBar,
     PriceHistory,
     Split,
     Timeframe,
-    parse_history,
 )
-from .profile import Profile, parse_profile
-from .quote import Quote, parse_quotes
-from .recommend import Recommendation, parse_recommendations
-from .screener import Screen, parse_screener
-from .search import Search, SearchMatch, SearchNews, parse_search
-from .spark import Spark, SparkInterval, SparkPeriod, SparkPoint, parse_spark
-from .timeseries import FinancialPoint, FinancialSeries, parse_timeseries
+from .profile import Profile
+from .quote import Quote
+from .recommend import Recommendation
+from .screener import Screen
+from .search import Search, SearchMatch, SearchNews
+from .spark import Spark, SparkInterval, SparkPeriod, SparkPoint
+from .timeseries import FinancialPoint, FinancialSeries
 
 __all__ = [
     "Dividend",
@@ -80,14 +79,4 @@ __all__ = [
     "YahooError",
     "YahooParseError",
     "YahooRequestError",
-    "parse_history",
-    "parse_insights",
-    "parse_options",
-    "parse_profile",
-    "parse_quotes",
-    "parse_recommendations",
-    "parse_screener",
-    "parse_search",
-    "parse_spark",
-    "parse_timeseries",
 ]

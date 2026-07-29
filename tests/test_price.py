@@ -11,7 +11,8 @@ from datetime import date
 
 import pytest
 
-from pyyahoo import PriceHistory, YahooParseError, YahooRequestError, parse_history
+from pyyahoo import PriceHistory, YahooParseError, YahooRequestError
+from pyyahoo.price import parse_history
 
 # 005930.KS-shaped: gmtoffset 32400 (KST, UTC+9). The three timestamps are KST
 # midnights, so the +9h shift lands each on its Korean date: 2018-04-27 (epoch
@@ -81,6 +82,15 @@ def test_dividend_is_carried_per_share():
     dividend = parse_history(_KST, "005930.KS").dividends[0]
     assert dividend.ex_date == date(2018, 4, 27)
     assert dividend.per_share == pytest.approx(354.0)
+
+
+def test_a_dividend_with_a_non_numeric_amount_is_shape_drift():
+    """A dividend event whose amount is null/non-numeric must raise, not seat a None
+    or a string in the float per_share field (matches the split coercion)."""
+    payload = json.loads(_KST)
+    payload["chart"]["result"][0]["events"]["dividends"]["1524754800"]["amount"] = None
+    with pytest.raises(YahooParseError):
+        parse_history(json.dumps(payload), "005930.KS")
 
 
 def test_split_numerator_and_denominator_are_integers_not_floats():

@@ -7,7 +7,8 @@ symbol sort, and a non-map payload.
 
 import pytest
 
-from pyyahoo import Spark, YahooParseError, parse_spark
+from pyyahoo import Spark, YahooParseError
+from pyyahoo.spark import parse_spark
 
 _TWO = """
 {"MSFT": {"symbol": "MSFT", "timestamp": [1700000000, 1700086400, 1700172800],
@@ -64,6 +65,13 @@ def test_a_non_numeric_close_is_dropped_not_stored_in_the_float_field():
     """
     aapl = parse_spark(junk)[0]
     assert [p.close for p in aapl.points] == [pytest.approx(190.0)]
+
+
+def test_a_non_object_spark_entry_is_shape_drift():
+    """A valid symbol map whose entry is not an object (a null series) must raise,
+    not be silently skipped."""
+    with pytest.raises(YahooParseError):
+        parse_spark('{"AAPL": null}')
 
 
 def test_a_non_numeric_chart_previous_close_becomes_none():

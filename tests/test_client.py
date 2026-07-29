@@ -227,7 +227,33 @@ def test_a_crumbed_endpoint_sends_the_crumb():
         _FakeResponse(404, ""), _FakeResponse(200, "c"),
         _FakeResponse(200, _QUOTE_JSON))
     _client(session).fetch_quotes(["AAPL"])
+    assert session.calls[-1]["url"].endswith("/v7/finance/quote")
     assert session.calls[-1]["params"]["crumb"] == "c"
+
+
+def test_a_second_crumbed_fetch_reuses_the_cached_crumb():
+    """The crumb is minted once and reused; a second crumbed fetch does not re-mint."""
+    session = _FakeSession(
+        _FakeResponse(404, ""), _FakeResponse(200, "c"),   # one mint
+        _FakeResponse(200, _QUOTE_JSON),                    # first fetch
+        _FakeResponse(200, _QUOTE_JSON))                    # second fetch, crumb reused
+    client = _client(session)
+    client.fetch_quotes(["AAPL"])
+    client.fetch_quotes(["MSFT"])
+    mints = sum(1 for call in session.calls if call["url"].endswith("/v1/test/getcrumb"))
+    assert mints == 1
+
+
+def test_the_second_request_waits_for_the_pacing_delay(_no_sleep, monkeypatch):
+    """With a positive delay, the client sleeps to space consecutive requests; the
+    first request does not wait, the second waits the delay."""
+    monkeypatch.setattr("pyyahoo.client.time.monotonic", lambda: 100.0)
+    session = _FakeSession(_FakeResponse(200, _CHART_EMPTY), _FakeResponse(200, _CHART_EMPTY))
+    client = YahooClient(delay_seconds=0.5)
+    client._session = session  # type: ignore[assignment]
+    client.fetch_history("MU")
+    client.fetch_history("MU")
+    assert _no_sleep == pytest.approx([0.5])
 
 
 def test_fetch_quotes_with_one_symbol_string_is_not_split_into_letters():
@@ -308,6 +334,15 @@ def test_fetch_options_sends_a_date_only_when_an_expiration_is_given():
     with_exp = _FakeSession(
         _FakeResponse(404, ""), _FakeResponse(200, "c"), _FakeResponse(200, _OPTIONS_JSON))
     _client(with_exp).fetch_options("AAPL", expiration=date(2025, 1, 17))
+    assert with_exp.calls[-1]["url"].endswith("/v7/finance/options/AAPL")
     # The independently-known epoch of 2025-01-17 00:00 UTC, so a _to_epoch regression
     # cannot move both sides together.
     assert with_exp.calls[-1]["params"]["date"] == 1_737_072_000
+
+
+def test_fetch_timeseries_with_start_after_end_is_a_value_error():
+    """An inverted window is a caller bug, caught before any request (parity with
+    fetch_history)."""
+    with pytest.raises(ValueError):
+        _client(_FakeSession()).fetch_timeseries(
+            "AAPL", ["annualTotalRevenue"], start=date(2020, 1, 2), end=date(2020, 1, 1))

@@ -19,8 +19,8 @@ wants adj_close, a chart wants close -- and Yahoo gives both.
 
 The split and dividend events ride in the same response and are carried as data,
 never acted on. They are Yahoo's, and Yahoo's are not always right: it reports
-삼성전자 splitting 50:1 twice, on 2018-05-04 and 2018-05-16, and only the first
-happened. So they are stored as the two integers Yahoo states -- numerator and
+Samsung Electronics splitting 50:1 twice, on 2018-05-04 and 2018-05-16, and only
+the first happened. So they are stored as the two integers Yahoo states -- numerator and
 denominator, not a single float that would round 1/21 away -- and left for a reader
 to use or distrust. A consumer that needs verified adjustment factors should
 measure them from the prices, not trust this feed.
@@ -185,10 +185,10 @@ def _parse_dividends(result: dict[str, Any], offset: timedelta) -> tuple[Dividen
     events = (result.get("events") or {}).get("dividends", {})
     try:
         dividends = [
-            Dividend(ex_date=_local_date(event["date"], offset), per_share=event["amount"])
+            Dividend(ex_date=_local_date(event["date"], offset), per_share=float(event["amount"]))
             for event in events.values()
         ]
-    except (KeyError, TypeError) as err:
+    except (KeyError, TypeError, ValueError) as err:
         raise YahooParseError(f"chart result has a malformed dividend event: {err}") from err
     return tuple(sorted(dividends, key=lambda dividend: dividend.ex_date))
 

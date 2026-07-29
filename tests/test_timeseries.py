@@ -10,7 +10,8 @@ from datetime import date
 
 import pytest
 
-from pyyahoo import FinancialSeries, YahooParseError, YahooRequestError, parse_timeseries
+from pyyahoo import FinancialSeries, YahooParseError, YahooRequestError
+from pyyahoo.timeseries import parse_timeseries
 
 _TWO_TYPES = """
 {"timeseries": {"error": null, "result": [
@@ -82,6 +83,19 @@ def test_an_entry_with_no_readable_meta_type_raises_rather_than_dropping_silentl
     'this symbol has no financials'."""
     with pytest.raises(YahooParseError):
         parse_timeseries(_DRIFTED_META, "AAPL")
+
+
+def test_a_row_without_a_usable_date_or_value_is_dropped():
+    """An object row missing asOfDate or reportedValue is not a point (it is dropped),
+    distinct from a non-object row which is drift."""
+    no_value = """
+    {"timeseries": {"error": null, "result": [
+      {"meta": {"symbol": ["AAPL"], "type": ["annualTotalRevenue"]},
+       "annualTotalRevenue": [{"asOfDate": "2022-09-30"}]}
+    ]}}
+    """
+    series = parse_timeseries(no_value, "AAPL")
+    assert series[0].points == ()
 
 
 def test_a_non_null_non_object_row_is_shape_drift_not_padding():
