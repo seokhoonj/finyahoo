@@ -159,13 +159,13 @@ def test_the_price_module_parses_the_live_snapshot():
 
 def test_the_price_module_parses_extended_hours_snapshots():
     profile = parse_profile(_WITH_PRICE, "MU")
-    assert profile.pre_market_price == pytest.approx(745.25)
-    assert profile.pre_market_change == pytest.approx(6.25)
-    assert profile.pre_market_change_percent == pytest.approx(0.00845737)
+    assert profile.pre_market_price == pytest.approx(745.25, rel=1e-9)
+    assert profile.pre_market_change == pytest.approx(6.25, rel=1e-9)
+    assert profile.pre_market_change_percent == pytest.approx(0.00845737, rel=1e-9)
     assert profile.pre_market_time == datetime(2026, 7, 30, 4, 0, 1, tzinfo=UTC)
-    assert profile.post_market_price == pytest.approx(736.5)
-    assert profile.post_market_change == pytest.approx(-2.5)
-    assert profile.post_market_change_percent == pytest.approx(-0.00338295)
+    assert profile.post_market_price == pytest.approx(736.5, rel=1e-9)
+    assert profile.post_market_change == pytest.approx(-2.5, rel=1e-9)
+    assert profile.post_market_change_percent == pytest.approx(-0.00338295, rel=1e-9)
     assert profile.post_market_time == datetime(2026, 7, 30, 13, 0, 1, tzinfo=UTC)
 
 
@@ -176,6 +176,17 @@ def test_live_fields_are_none_when_the_price_module_is_absent():
     assert profile.price is None
     assert profile.market_state is None
     assert profile.market_time is None
+    for field in (
+        "pre_market_price",
+        "pre_market_change",
+        "pre_market_change_percent",
+        "pre_market_time",
+        "post_market_price",
+        "post_market_change",
+        "post_market_change_percent",
+        "post_market_time",
+    ):
+        assert getattr(profile, field) is None
 
 
 def test_a_null_boxed_volume_is_none_not_zero():

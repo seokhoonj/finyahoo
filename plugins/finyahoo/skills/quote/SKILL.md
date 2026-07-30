@@ -35,7 +35,9 @@ finyahoo quote "<SYMBOL>" ["<SYMBOL>" ...] [--json]
 
 This is the live snapshot **as of now** -- the current price when the market is open,
 the last close otherwise; `market_state` (REGULAR / PRE / POST / CLOSED / ...) tells
-which. For dated bars use the `history` skill; for fundamentals use `profile`.
+which. It also carries pre-market and post-market price/change fields, reflecting the
+current price during those sessions when `market_state` is PRE or POST. For dated bars
+use the `history` skill; for fundamentals use `profile`.
 
 ## Procedure
 

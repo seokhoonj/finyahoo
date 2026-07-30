@@ -56,6 +56,17 @@ def test_a_missing_field_is_none_not_zero():
     assert samsung.trailing_pe is None
     assert samsung.volume is None
     assert samsung.market_cap is None
+    for field in (
+        "pre_market_price",
+        "pre_market_change",
+        "pre_market_change_percent",
+        "pre_market_time",
+        "post_market_price",
+        "post_market_change",
+        "post_market_change_percent",
+        "post_market_time",
+    ):
+        assert getattr(samsung, field) is None
 
 
 def test_epoch_market_time_becomes_a_datetime():
@@ -65,13 +76,13 @@ def test_epoch_market_time_becomes_a_datetime():
 
 def test_extended_hours_bare_numbers_and_times_are_parsed():
     apple = parse_quotes(_TWO)[0]
-    assert apple.pre_market_price == pytest.approx(340.5)
-    assert apple.pre_market_change == pytest.approx(1.25)
-    assert apple.pre_market_change_percent == pytest.approx(0.3684)
+    assert apple.pre_market_price == pytest.approx(340.5, rel=1e-9)
+    assert apple.pre_market_change == pytest.approx(1.25, rel=1e-9)
+    assert apple.pre_market_change_percent == pytest.approx(0.3684, rel=1e-9)
     assert apple.pre_market_time == datetime(2026, 7, 31, 4, 0, tzinfo=UTC)
-    assert apple.post_market_price == pytest.approx(338.75)
-    assert apple.post_market_change == pytest.approx(-0.5)
-    assert apple.post_market_change_percent == pytest.approx(-0.1474)
+    assert apple.post_market_price == pytest.approx(338.75, rel=1e-9)
+    assert apple.post_market_change == pytest.approx(-0.5, rel=1e-9)
+    assert apple.post_market_change_percent == pytest.approx(-0.1474, rel=1e-9)
     assert apple.post_market_time == datetime(2026, 7, 31, 13, 0, tzinfo=UTC)
 
 

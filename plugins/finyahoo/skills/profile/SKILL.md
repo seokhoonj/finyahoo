@@ -1,6 +1,6 @@
 ---
 name: profile
-description: "Fetch one symbol's fundamentals (sector, size, valuation, growth, margins) and its live price snapshot (current price, day change/range, market state) from Yahoo Finance, in one call. Holds no logic of its own -- it calls the finyahoo package's CLI (`finyahoo profile`) and shows the result to the user. The deep single-symbol view; use the quote skill for a live snapshot across many symbols. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC). Trigger phrases: company profile, fundamentals, valuation, market cap, PE ratio, 기업정보, 펀더멘털, 프로파일, 시가총액."
+description: "Fetch one symbol's fundamentals (sector, size, valuation, growth, margins) and its live price snapshot (current price, day change/range, market state, pre/post-market price) from Yahoo Finance, in one call. Holds no logic of its own -- it calls the finyahoo package's CLI (`finyahoo profile`) and shows the result to the user. The deep single-symbol view; use the quote skill for a live snapshot across many symbols. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC). Trigger phrases: company profile, fundamentals, valuation, market cap, PE ratio, 기업정보, 펀더멘털, 프로파일, 시가총액."
 ---
 
 # finyahoo — company profile

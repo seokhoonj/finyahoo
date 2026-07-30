@@ -13,6 +13,7 @@ import pytest
 from finyahoo import YahooParseError
 from finyahoo.payload import (
     as_number,
+    as_str,
     each_dict,
     epoch_to_date,
     epoch_to_datetime,
@@ -72,6 +73,17 @@ def test_as_number_reads_a_bare_number_and_rejects_non_numbers():
     assert as_number(True) is None               # bool is not a number
     assert as_number({"raw": 5}) is None         # an unexpected box, not a bare number
     assert as_number("339.25") is None           # a string is not a number
+
+
+def test_as_str_reads_a_bare_string():
+    pre = "PRE"
+    assert as_str(pre) == pre
+    assert as_str("") == ""
+
+
+@pytest.mark.parametrize("value", [123, 1.5, True, {"raw": "x"}, ["x"], None])
+def test_as_str_rejects_non_strings(value):
+    assert as_str(value) is None
 
 
 def test_first_dict_returns_the_object_or_raises_on_drift():
