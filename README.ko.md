@@ -102,7 +102,7 @@ finyahoo history ^GSPC --timeframe week   # 지수의 주봉
 finyahoo profile AAPL                     # 현재 펀더멘털
 finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
 finyahoo quote MU                         # 한 종목 실시간 시세
-finyahoo news MU                          # 한 종목의 관련 뉴스 헤드라인
+finyahoo news SKHY                        # 한 종목의 관련 뉴스 헤드라인
 finyahoo match "SK hynix"                 # 이름/티커에 매칭되는 Yahoo 심볼
 ```
 
@@ -169,28 +169,28 @@ two_hundred_day_average  193301.25
 
 표시된 값은 조회 시점 기준의 스냅샷입니다.
 
-`finyahoo news MU`은 관련 헤드라인을 최신순으로 보여줍니다(`-n`으로 개수 조절). 뉴스는
-Yahoo가 붙여주는 커버리지에 의존해 미국 상장 종목에서 가장 풍부하고, 국내 티커는 일반
-시황 위주로 나옵니다.
+`finyahoo news SKHY`은 관련 헤드라인을 최신순으로 보여줍니다(`-n`으로 개수 조절). 뉴스는
+Yahoo가 붙여주는 커버리지에 의존해 미국 상장 종목에서 가장 풍부하므로, SK하이닉스는 국내
+티커(`000660.KS`, 일반 시황 위주) 대신 미국 ADR(`SKHY`)로 조회했습니다.
 
 ```
 2026-07-30 17:03  (Motley Fool) Is Micron Being Squeezed Out Now That SK Hynix and Samsung Have Partnered With Major Chip Companies?
   https://finance.yahoo.com/m/40c62ba6-4290-3c7c-be91-cb372c6fb90d/is-micron-being-squeezed-out.html
-2026-07-30 16:52  (Motley Fool) Stock Market Midday, July 30: Microsoft Soars 15%, Boosting Tech Stocks
-  https://finance.yahoo.com/m/7317caa8-d0df-35aa-828c-ba96af9ee6dc/stock-market-midday%2C-july-30%3A.html
-2026-07-30 16:33  (Barrons.com) Sandisk Stock Is Having Its Best Day Since January. It Has Had a Tough Month.
-  https://finance.yahoo.com/m/ae656ca1-8ae1-391d-8f12-22230841adc0/sandisk-stock-is-having-its.html
+2026-07-30 16:15  (The Wall Street Journal) Citadel Buys Situational Awareness’s Stock Portfolio After Big Losses in AI
+  https://finance.yahoo.com/m/2fc5ad36-3475-30fc-a620-2572ee55d9d4/citadel-buys-situational.html
+2026-07-30 15:29  (Investing.com) UBS sees upside in SK Hynix stock on high memory profitability
+  https://finance.yahoo.com/markets/stocks/articles/ubs-sees-upside-sk-hynix-152949932.html
 ```
 
-`finyahoo match Samsung`은 이름/티커가 해소되는 Yahoo 심볼들을 관련도 순으로 보여줍니다.
+`finyahoo match "SK hynix"`은 이름/티커가 해소되는 Yahoo 심볼들을 관련도 순으로 보여줍니다.
 
 ```
-005930.KS  EQUITY  Korea                             Technology   SamsungElec
-001360.KS  EQUITY  Korea                             Healthcare   SAMSUNG PHARM
-006400.KS  EQUITY  Korea                             Industrials  SAMSUNG SDI CO.,LTD.
-SMSN.IL    EQUITY  International Orderbook - London  Technology   SAMSUNG ELECTRONICS CO LTD (ATT
-009150.KS  EQUITY  Korea                             Technology   SamsungElecMech
-005935.KS  EQUITY  Korea                             Technology   SamsungElec(1P)
+SKHY       EQUITY  NASDAQ        Technology  SK hynix Inc.
+000660.KS  EQUITY  Korea         Technology  SK hynix
+SKHX       ETF     BATS Trading  None        Leverage Shares 2X Long SK Hyni
+HY9H.SG    EQUITY  Stuttgart     Technology  SK Hynix Inc. (GDRs)
+HNX3.L     EQUITY  London        None        LEVERAGE SHARES PUBLIC LIMITED
+0193T0.KS  ETF     Korea         None        KODEX SK Hynix Single Stock Lev
 ```
 
 ## 7. AI 코딩 에이전트에서 사용

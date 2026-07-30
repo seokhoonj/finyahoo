@@ -106,8 +106,8 @@ finyahoo history ^GSPC --timeframe week   # weekly bars for an index
 finyahoo profile AAPL                     # current fundamentals
 finyahoo profile 005930.KS --json         # full snapshot as JSON
 finyahoo quote MU                         # live price snapshot for one symbol
-finyahoo news MU                          # related news headlines for one symbol
-finyahoo match "SK hynix"                 # Yahoo symbols matching a name or ticker
+finyahoo news MSFT                        # related news headlines for one symbol
+finyahoo match Microsoft                  # Yahoo symbols matching a name or ticker
 ```
 
 Each subcommand prints a readable summary by default and the full result with `--json`;
@@ -179,26 +179,26 @@ fifty_day_average          308.5888
 two_hundred_day_average    277.21344
 ```
 
-`finyahoo news AAPL` -- related headlines, most recent first (`-n` caps how many):
+`finyahoo news MSFT` -- related headlines, most recent first (`-n` caps how many):
 
 ```
-2026-07-30 17:23  (Barrons.com) Why Apple's Earnings Need 'Zero Blemishes'
-  https://finance.yahoo.com/m/e1c5f464-b42b-35ec-a4ad-d1cbf6358073/why-apple%27s-earnings-need.html
-2026-07-30 17:22  (Investor's Business Daily) Stock Market Today: Nasdaq Rebounds, Chips Jump
-  https://finance.yahoo.com/m/826969c6-014c-37f9-9ed7-da1bab782e05/stock-market-today%3A-nasdaq.html
-2026-07-30 16:54  (GuruFocus.com) Apple Faces a Closely Watched Earnings Test
-  https://finance.yahoo.com/markets/stocks/articles/apple-faces-closely-watched-earnings-165436355.html
+2026-07-30 17:30  (Yahoo Finance Video) Meta's & Microsoft's massive AI spending: Why only one is getting rewarded
+  https://finance.yahoo.com/video/metas-microsofts-massive-ai-spending-173000471.html
+2026-07-30 17:29  (MT Newswires) OpenAI Reducing Price of GPT-5.6 Luna Model by 80%
+  https://finance.yahoo.com/technology/ai/articles/openai-reducing-price-gpt-5-172908415.html
+2026-07-30 17:28  (MT Newswires) Sector Update: Tech Stocks Sharply Higher Thursday Afternoon
+  https://finance.yahoo.com/markets/stocks/articles/sector-tech-stocks-sharply-higher-172836223.html
 ```
 
-`finyahoo match "SK hynix"` -- the Yahoo symbols a name or ticker resolves to, ranked:
+`finyahoo match Microsoft` -- the Yahoo symbols a name or ticker resolves to, ranked:
 
 ```
-SKHY       EQUITY  NASDAQ        Technology  SK hynix Inc.
-000660.KS  EQUITY  Korea         Technology  SK hynix
-SKHX       ETF     BATS Trading  None        Leverage Shares 2X Long SK Hyni
-HY9H.SG    EQUITY  Stuttgart     Technology  SK Hynix Inc. (GDRs)
-HNX3.L     EQUITY  London        None        LEVERAGE SHARES PUBLIC LIMITED
-0193T0.KS  ETF     Korea         None        KODEX SK Hynix Single Stock Lev
+MSFT       EQUITY          NASDAQ     Technology  Microsoft Corporation
+MSF.DE     EQUITY          XETRA      Technology  MICROSOFT CORP.               R
+MSF.F      EQUITY          Frankfurt  Technology  MICROSOFT CORP.               R
+MSFTX-USD  CRYPTOCURRENCY  CCC        None        Microsoft tokenized stock (xStock) USD
+MSFT34.SA  EQUITY          São Paulo  Technology  MICROSOFT   DRN
+MSFT01.BK  EQUITY          SET        Technology  MSFT01_DR MSFT#BLS
 ```
 
 ## 7. Use it from an AI coding agent
