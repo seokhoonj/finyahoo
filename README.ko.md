@@ -102,11 +102,14 @@ finyahoo history ^GSPC --timeframe week   # 지수의 주봉
 finyahoo profile AAPL                     # 현재 펀더멘털
 finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
 finyahoo quote MU                         # 한 종목 실시간 시세
+finyahoo news MU                          # 한 종목의 관련 뉴스 헤드라인
+finyahoo match "SK hynix"                 # 이름/티커에 매칭되는 Yahoo 심볼
 ```
 
 각 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다. 어느 것이든
 `--help`(`finyahoo quote --help`)로 옵션을 확인하세요. `quote`는 심볼 하나를 받아 실시간
-시세 스냅샷을 보여주고, `profile`은 해당 종목의 펀더멘털을 보여줍니다.
+시세 스냅샷을, `profile`은 해당 종목의 펀더멘털을 보여줍니다. `news`는 종목의 관련 헤드라인을,
+`match`는 이름/티커를 Yahoo 심볼로 해소해 줍니다(둘 다 `-n/--count` 지원).
 
 ### 예시 출력
 

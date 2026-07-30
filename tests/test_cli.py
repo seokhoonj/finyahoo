@@ -13,7 +13,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from finyahoo import Quote, Timeframe, YahooRequestError
+from finyahoo import Quote, Search, SearchMatch, SearchNews, Timeframe, YahooRequestError
 from finyahoo.cli import main
 from finyahoo.price import Dividend, PriceBar, PriceHistory, Split
 from finyahoo.profile import Profile
@@ -63,15 +63,35 @@ _QUOTES = (
            currency="KRW", market_state="PREPRE"),
 )
 
+_SEARCH = Search(
+    query="MU",
+    matches=(
+        SearchMatch("MU", "Micron Technology, Inc.", "NasdaqGS", "EQUITY",
+                    "Equity", "Technology", "Semiconductors", 25_000.0),
+        SearchMatch("MUSA", "Murphy USA Inc.", "NYSE", "EQUITY",
+                    "Equity", "Consumer Cyclical", "Specialty Retail", 12_000.0),
+    ),
+    news=(
+        SearchNews("news-1", "Micron announces results", "Reuters",
+                   "https://example.com/news-1",
+                   datetime(2026, 7, 30, 12, 30, tzinfo=UTC), ("MU",)),
+        SearchNews("news-2", "Memory market update", "Bloomberg",
+                   "https://example.com/news-2", None, ("MU", "005930.KS")),
+    ),
+)
+
+_EMPTY_SEARCH = Search(query="missing", matches=(), news=())
+
 
 class _FakeYahoo:
     """Stands in for YahooClient: a context manager returning canned results, or
     raising a scripted error from the fetch methods."""
 
-    def __init__(self, *, history=None, profile=None, quotes=None, error=None):
+    def __init__(self, *, history=None, profile=None, quotes=None, search=None, error=None):
         self._history = history
         self._profile = profile
         self._quotes = quotes
+        self._search = search
         self._error = error
 
     def __enter__(self):
@@ -94,6 +114,11 @@ class _FakeYahoo:
         if self._error is not None:
             raise self._error
         return self._quotes
+
+    def fetch_search(self, *args, **kwargs):
+        if self._error is not None:
+            raise self._error
+        return self._search
 
 
 def _install_fake_yahoo_client(monkeypatch, **kwargs):
@@ -186,6 +211,94 @@ def test_quote_unknown_symbol_is_a_one_line_error(monkeypatch, capsys):
     _install_fake_yahoo_client(monkeypatch, quotes=())
     assert main(["quote", "NOSUCH"]) == 1
     assert "no quote for NOSUCH" in capsys.readouterr().err
+
+
+def test_news_text_shows_headlines_publishers_and_missing_timestamp(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, search=_SEARCH)
+    assert main(["news", "MU"]) == 0
+    out = capsys.readouterr().out
+    assert "Micron announces results" in out and "(Reuters)" in out
+    assert "?  (Bloomberg) Memory market update" in out    # a None timestamp renders as ?
+
+
+def test_news_json_is_a_list_with_iso_timestamp(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, search=_SEARCH)
+    assert main(["news", "MU", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert isinstance(payload, list)                        # the news items, not one object
+    assert payload[0]["published_at"] == "2026-07-30T12:30:00+00:00"   # datetime as ISO
+
+
+def test_match_text_shows_symbol_and_sector(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, search=_SEARCH)
+    assert main(["match", "MU"]) == 0
+    out = capsys.readouterr().out
+    assert "MU" in out and "Technology" in out
+
+
+def test_match_json_is_a_list_of_the_matches(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, search=_SEARCH)
+    assert main(["match", "MU", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert isinstance(payload, list) and len(payload) == 2      # the matches, not one object
+    assert payload[0]["symbol"] == "MU" and payload[0]["sector"] == "Technology"
+
+
+def test_empty_search_has_clear_text_messages(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, search=_EMPTY_SEARCH)
+    assert main(["news", "missing"]) == 0
+    assert capsys.readouterr().out.strip() == "(no news)"
+    assert main(["match", "missing"]) == 0
+    assert capsys.readouterr().out.strip() == "(no matches)"
+
+
+def test_match_text_tolerates_missing_optional_fields(monkeypatch, capsys):
+    """A match can carry None for exchange/sector/name (an ETF or a thin listing); the
+    render must not crash on the None and still shows the symbol."""
+    sparse = Search(query="X", news=(), matches=(
+        SearchMatch("XYZ", None, None, "ETF", None, None, None, None),))
+    _install_fake_yahoo_client(monkeypatch, search=sparse)
+    assert main(["match", "X"]) == 0
+    out = capsys.readouterr().out
+    assert "XYZ" in out and "ETF" in out
+
+
+@pytest.mark.parametrize("command", ["news", "match"])
+def test_a_search_command_reports_a_yahoo_error(monkeypatch, capsys, command):
+    """A fetch_search failure travels the same one-line-stderr / exit-1 contract as the
+    other commands -- the new commands must not leak a traceback."""
+    _install_fake_yahoo_client(monkeypatch, error=YahooRequestError("Not Found"))
+    assert main([command, "MU"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.strip() == "finyahoo: Not Found"
+
+
+@pytest.mark.parametrize("command", ["news", "match"])
+def test_a_count_below_one_is_rejected_by_argparse(command):
+    """--count is a boundary: 0 or a negative is rejected before any network call."""
+    with pytest.raises(SystemExit):
+        main([command, "MU", "-n", "0"])
+
+
+def test_search_commands_forward_symbol_and_counts(monkeypatch):
+    """The symbol and the count reach fetch_search -- news drives news_count, match
+    drives quotes_count -- a dropped or swapped argument would otherwise ship green."""
+    calls = []
+
+    class _Recorder(_FakeYahoo):
+        def fetch_search(self, query, **kwargs):
+            calls.append((query, kwargs))
+            return _SEARCH
+
+    monkeypatch.setattr("finyahoo.cli.YahooClient",
+                        lambda *a, **k: _Recorder(search=_SEARCH))
+    assert main(["news", "MU", "--count", "9"]) == 0
+    assert main(["match", "SK hynix", "-n", "11"]) == 0
+    assert calls == [
+        ("MU", {"quotes_count": 1, "news_count": 9}),
+        ("SK hynix", {"quotes_count": 11, "news_count": 0}),
+    ]
 
 
 def test_a_domain_error_is_one_line_on_stderr_and_exit_1(monkeypatch, capsys):

@@ -106,11 +106,15 @@ finyahoo history ^GSPC --timeframe week   # weekly bars for an index
 finyahoo profile AAPL                     # current fundamentals
 finyahoo profile 005930.KS --json         # full snapshot as JSON
 finyahoo quote MU                         # live price snapshot for one symbol
+finyahoo news MU                          # related news headlines for one symbol
+finyahoo match "SK hynix"                 # Yahoo symbols matching a name or ticker
 ```
 
 Each subcommand prints a readable summary by default and the full result with `--json`;
 `--help` on any of them (`finyahoo quote --help`) lists the flags. `quote` takes one
-symbol and prints its live price snapshot; `profile` prints that symbol's fundamentals.
+symbol and prints its live price snapshot; `profile` prints that symbol's fundamentals;
+`news` lists a symbol's related headlines and `match` resolves a name or ticker to Yahoo
+symbols (both take `-n/--count`).
 
 ### Example output
 

@@ -8,6 +8,8 @@ single runtime dependency (``curl_cffi``) is not widened by having a CLI.
     $ finyahoo history AAPL --start 2024-01-01
     $ finyahoo profile ^GSPC --json
     $ finyahoo quote MU
+    $ finyahoo news MU
+    $ finyahoo match "SK hynix"
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from .errors import YahooError
 from .price import PriceHistory, Timeframe
 from .profile import Profile
 from .quote import Quote
+from .search import Search
 
 # The CLI's --timeframe words, mapped to the library enum. Kept as words so the flag
 # reads (day/week/month), not Yahoo's raw 1d/1wk/1mo.
@@ -33,6 +36,15 @@ _TIMEFRAMES = {"day": Timeframe.DAY, "week": Timeframe.WEEK, "month": Timeframe.
 # How many of the most recent bars the text view prints; the full series is always
 # available with --json.
 _RECENT_BARS = 5
+
+
+def _positive_count(value: str) -> int:
+    """An argparse type for the news/match ``--count``: a whole number >= 1. Rejects 0
+    and negatives at the boundary so a nonsense count never reaches fetch_search."""
+    count = int(value)
+    if count < 1:
+        raise argparse.ArgumentTypeError("count must be at least 1")
+    return count
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -86,6 +98,24 @@ def _make_parser() -> argparse.ArgumentParser:
     quote.add_argument("--json", action="store_true", help="emit JSON instead of text")
     quote.set_defaults(run=_run_quote)
 
+    news = commands.add_parser(
+        "news", help="related news for one symbol")
+    news.add_argument("symbol", help="a Yahoo ticker (AAPL, 005930.KS, ^GSPC)")
+    news.add_argument("-n", "--count", type=_positive_count, default=4,
+                      help="maximum news items to request (default: 4)")
+    news.add_argument("--json", action="store_true", help="emit JSON instead of text")
+    news.set_defaults(run=_run_news)
+
+    # match takes a free-text query (a name or a ticker), not necessarily a symbol --
+    # "SK hynix" resolves to SKHY / 000660.KS -- so its positional is `query`.
+    match = commands.add_parser(
+        "match", help="matching Yahoo symbols for one query")
+    match.add_argument("query", help="a company name or Yahoo ticker (SK hynix, MU)")
+    match.add_argument("-n", "--count", type=_positive_count, default=6,
+                       help="maximum symbol matches to request (default: 6)")
+    match.add_argument("--json", action="store_true", help="emit JSON instead of text")
+    match.set_defaults(run=_run_match)
+
     return parser
 
 
@@ -118,10 +148,35 @@ def _run_quote(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_news(args: argparse.Namespace) -> int:
+    with YahooClient() as yahoo:
+        # quotes_count=1: this view renders only the news half of the Search.
+        search = yahoo.fetch_search(
+            args.symbol, quotes_count=1, news_count=args.count)
+    print(_records_to_json(search.news) if args.json else _render_news(search))
+    return 0
+
+
+def _run_match(args: argparse.Namespace) -> int:
+    with YahooClient() as yahoo:
+        # news_count=0: this view renders only the matches half of the Search.
+        search = yahoo.fetch_search(
+            args.query, quotes_count=args.count, news_count=0)
+    print(_records_to_json(search.matches) if args.json else _render_matches(search))
+    return 0
+
+
 def _to_json(result: PriceHistory | Profile) -> str:
     """A frozen result dataclass as indented JSON, dates rendered as ISO strings."""
     return json.dumps(dataclasses.asdict(result), default=_json_default,
                       ensure_ascii=False, indent=2)
+
+
+def _records_to_json(records: Sequence[object]) -> str:
+    """A sequence of frozen result dataclasses as an indented JSON array, dates rendered
+    as ISO strings -- the news/match views emit a list, one object per row."""
+    return json.dumps([dataclasses.asdict(record) for record in records],
+                      default=_json_default, ensure_ascii=False, indent=2)
 
 
 def _quote_to_json(quote: Quote) -> str:
@@ -187,6 +242,35 @@ def _render_quote(quote: Quote) -> str:
     pairs = [(name, getattr(quote, name)) for name in _QUOTE_VIEW_FIELDS
              if getattr(quote, name) is not None]
     return _aligned(pairs)
+
+
+def _render_news(search: Search) -> str:
+    """Related headlines in Yahoo's order, with their destinations visible."""
+    if not search.news:
+        return "(no news)"
+    lines = []
+    for news in search.news:
+        published = "?" if news.published_at is None else news.published_at.strftime(
+            "%Y-%m-%d %H:%M")
+        lines.append(f"{published}  ({news.publisher}) {news.title}")
+        lines.append(f"  {news.link}")
+    return "\n".join(lines)
+
+
+def _render_matches(search: Search) -> str:
+    """Ranked symbol matches as aligned summary columns."""
+    if not search.matches:
+        return "(no matches)"
+    rows = [
+        (match.symbol, match.quote_type, match.exchange, match.sector, match.name)
+        for match in search.matches
+    ]
+    widths = [max(len(str(row[index])) for row in rows) for index in range(4)]
+    return "\n".join(
+        f"{symbol:<{widths[0]}}  {quote_type!s:<{widths[1]}}  "
+        f"{exchange!s:<{widths[2]}}  {sector!s:<{widths[3]}}  {name}"
+        for symbol, quote_type, exchange, sector, name in rows
+    )
 
 
 def _aligned(pairs: list[tuple[str, object]]) -> str:
