@@ -112,6 +112,69 @@ Each subcommand prints a readable summary by default and the full result with `-
 `--help` on any of them (`finyahoo quote --help`) lists the flags. `quote` takes one
 symbol and prints its live price snapshot; `profile` prints that symbol's fundamentals.
 
+### Example output
+
+`finyahoo history AAPL` -- a one-line summary then the most recent bars:
+
+```
+AAPL  11498 bars  (5 splits, 91 dividends)
+  2026-07-23  close     321.6600  adj     321.6600  vol 40,840,800
+  2026-07-24  close     333.0200  adj     333.0200  vol 47,489,400
+  2026-07-27  close     336.9100  adj     336.9100  vol 49,604,300
+  2026-07-28  close     340.0800  adj     340.0800  vol 51,859,000
+  2026-07-29  close     338.1900  adj     338.1900  vol 55,929,000
+```
+
+`finyahoo profile AAPL` -- the company fundamentals:
+
+```
+symbol               AAPL
+name                 Apple Inc.
+sector               Technology
+industry             Consumer Electronics
+currency             USD
+market_cap           4967117094912
+shares_outstanding   14687356000
+trailing_pe          40.99273
+forward_pe           35.059658
+price_to_book        46.58264
+trailing_eps         8.25
+revenue_growth       0.166
+earnings_growth      0.218
+profit_margin        0.27152002
+operating_margin     0.32275
+return_on_equity     1.4147099
+fifty_two_week_high  344.57
+fifty_two_week_low   201.5
+beta                 1.097
+```
+
+`finyahoo quote AAPL` -- the live price snapshot:
+
+```
+symbol                     AAPL
+name                       Apple Inc.
+quote_type                 EQUITY
+exchange                   NasdaqGS
+currency                   USD
+market_state               PRE
+price                      338.19
+previous_close             340.08
+change                     -1.88998
+change_percent             -0.555747
+day_open                   339.69
+day_high                   344.5699
+day_low                    337.3501
+volume                     48852885
+market_time                2026-07-29 20:00:01+00:00
+pre_market_price           336.21
+pre_market_change          -1.980011
+pre_market_change_percent  -0.58547294
+pre_market_time            2026-07-30 13:20:11+00:00
+fifty_day_average          308.5888
+two_hundred_day_average    277.21344
+```
+
 ## 7. Use it from an AI coding agent
 
 This repo doubles as a plugin marketplace for Claude Code and Codex, exposing
