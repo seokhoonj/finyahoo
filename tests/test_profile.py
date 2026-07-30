@@ -71,7 +71,15 @@ _WITH_PRICE = """
     "regularMarketDayHigh": {"raw": 841.8},
     "regularMarketDayLow": {"raw": 737.88},
     "regularMarketVolume": {"raw": 67355489},
-    "regularMarketTime": {"raw": 1785355201}
+    "regularMarketTime": {"raw": 1785355201},
+    "preMarketPrice": {"raw": 745.25},
+    "preMarketChange": {"raw": 6.25},
+    "preMarketChangePercent": {"raw": 0.00845737},
+    "preMarketTime": {"raw": 1785384001},
+    "postMarketPrice": {"raw": 736.5},
+    "postMarketChange": {"raw": -2.5},
+    "postMarketChangePercent": {"raw": -0.00338295},
+    "postMarketTime": {"raw": 1785416401}
   }
 }]}}
 """
@@ -147,6 +155,18 @@ def test_the_price_module_parses_the_live_snapshot():
     assert profile.quote_type == "EQUITY"
     assert profile.volume == 67355489
     assert profile.market_time == datetime(2026, 7, 29, 20, 0, 1, tzinfo=UTC)
+
+
+def test_the_price_module_parses_extended_hours_snapshots():
+    profile = parse_profile(_WITH_PRICE, "MU")
+    assert profile.pre_market_price == pytest.approx(745.25)
+    assert profile.pre_market_change == pytest.approx(6.25)
+    assert profile.pre_market_change_percent == pytest.approx(0.00845737)
+    assert profile.pre_market_time == datetime(2026, 7, 30, 4, 0, 1, tzinfo=UTC)
+    assert profile.post_market_price == pytest.approx(736.5)
+    assert profile.post_market_change == pytest.approx(-2.5)
+    assert profile.post_market_change_percent == pytest.approx(-0.00338295)
+    assert profile.post_market_time == datetime(2026, 7, 30, 13, 0, 1, tzinfo=UTC)
 
 
 def test_live_fields_are_none_when_the_price_module_is_absent():

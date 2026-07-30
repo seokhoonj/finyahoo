@@ -48,17 +48,19 @@ class Profile:
     """A company's fundamentals and its live price snapshot, as far as Yahoo carries them.
 
     One quoteSummary call answers both: the ``price`` module carries the live snapshot
-    (current price, the day's change and range, market state), the other modules the
-    fundamentals (sector, size, valuation, growth, margins). ``quote`` reads the
-    snapshot for *many* symbols at once; this is the deep single-symbol view.
+    (regular and pre/post-market current prices and changes, the day's range, market
+    state), the other modules the fundamentals (sector, size, valuation, growth,
+    margins). ``quote`` reads the snapshot for *many* symbols at once; this is the
+    deep single-symbol view.
 
     Every field but ``symbol`` is optional: Yahoo omits what it does not have for a
     given security, and the absence is ``None`` (never 0 -- 0 is a real reading).
     Ratios are fractions, not percents (``profit_margin=0.21`` is 21%,
-    ``change_percent=-0.05`` is -5%): this is the quoteSummary convention, so
-    ``change_percent`` here is a fraction -- unlike ``Quote.change_percent``, which
-    mirrors the percent the /v7 endpoint gives. ``market_cap``, ``shares_outstanding``,
-    and ``volume`` are counts; prices are in ``currency``.
+    ``change_percent=-0.05`` is -5%): this is the quoteSummary convention, so regular
+    and pre/post ``change_percent`` fields here are fractions -- unlike their
+    ``Quote`` counterparts, which mirror the percents the /v7 endpoint gives.
+    ``market_cap``, ``shares_outstanding``, and ``volume`` are counts; prices are in
+    ``currency``.
     """
 
     symbol: str
@@ -81,6 +83,14 @@ class Profile:
     day_low: float | None = None
     volume: int | None = None
     market_time: datetime | None = None
+    pre_market_price: float | None = None
+    pre_market_change: float | None = None
+    pre_market_change_percent: float | None = None
+    pre_market_time: datetime | None = None
+    post_market_price: float | None = None
+    post_market_change: float | None = None
+    post_market_change_percent: float | None = None
+    post_market_time: datetime | None = None
     # Size.
     market_cap: int | None = None
     shares_outstanding: int | None = None
@@ -132,41 +142,49 @@ def parse_profile(payload: str, symbol: str) -> Profile:
             modules.update(module)
 
     return Profile(
-        symbol                  = symbol,
-        name                    = as_str(modules.get("longName"))
+        symbol                     = symbol,
+        name                       = as_str(modules.get("longName"))
                                   or as_str(modules.get("shortName")),
-        quote_type              = as_str(modules.get("quoteType")),
-        sector                  = as_str(modules.get("sector")),
-        industry                = as_str(modules.get("industry")),
-        exchange                = as_str(modules.get("exchangeName"))
+        quote_type                 = as_str(modules.get("quoteType")),
+        sector                     = as_str(modules.get("sector")),
+        industry                   = as_str(modules.get("industry")),
+        exchange                   = as_str(modules.get("exchangeName"))
                                   or as_str(modules.get("exchange")),
-        currency                = as_str(modules.get("currency")),
-        market_state            = as_str(modules.get("marketState")),
-        price                   = unwrap_raw(modules.get("regularMarketPrice")),
-        previous_close          = unwrap_raw(modules.get("regularMarketPreviousClose")),
-        change                  = unwrap_raw(modules.get("regularMarketChange")),
-        change_percent          = unwrap_raw(modules.get("regularMarketChangePercent")),
-        day_open                = unwrap_raw(modules.get("regularMarketOpen")),
-        day_high                = unwrap_raw(modules.get("regularMarketDayHigh")),
-        day_low                 = unwrap_raw(modules.get("regularMarketDayLow")),
-        volume                  = unwrap_raw_int(modules.get("regularMarketVolume")),
-        market_time             = epoch_to_datetime(unwrap_raw(modules.get("regularMarketTime"))),
-        market_cap              = unwrap_raw_int(modules.get("marketCap")),
-        shares_outstanding      = unwrap_raw_int(modules.get("sharesOutstanding")),
-        trailing_pe             = unwrap_raw(modules.get("trailingPE")),
-        forward_pe              = unwrap_raw(modules.get("forwardPE")),
-        price_to_book           = unwrap_raw(modules.get("priceToBook")),
-        trailing_eps            = unwrap_raw(modules.get("trailingEps")),
-        forward_eps             = unwrap_raw(modules.get("forwardEps")),
-        dividend_yield          = unwrap_raw(modules.get("dividendYield")),
-        revenue_growth          = unwrap_raw(modules.get("revenueGrowth")),
-        earnings_growth         = unwrap_raw(modules.get("earningsGrowth")),
-        profit_margin           = unwrap_raw(modules.get("profitMargins")),
-        operating_margin        = unwrap_raw(modules.get("operatingMargins")),
-        return_on_equity        = unwrap_raw(modules.get("returnOnEquity")),
-        fifty_day_average       = unwrap_raw(modules.get("fiftyDayAverage")),
-        two_hundred_day_average = unwrap_raw(modules.get("twoHundredDayAverage")),
-        fifty_two_week_high     = unwrap_raw(modules.get("fiftyTwoWeekHigh")),
-        fifty_two_week_low      = unwrap_raw(modules.get("fiftyTwoWeekLow")),
-        beta                    = unwrap_raw(modules.get("beta")),
+        currency                   = as_str(modules.get("currency")),
+        market_state               = as_str(modules.get("marketState")),
+        price                      = unwrap_raw(modules.get("regularMarketPrice")),
+        previous_close             = unwrap_raw(modules.get("regularMarketPreviousClose")),
+        change                     = unwrap_raw(modules.get("regularMarketChange")),
+        change_percent             = unwrap_raw(modules.get("regularMarketChangePercent")),
+        day_open                   = unwrap_raw(modules.get("regularMarketOpen")),
+        day_high                   = unwrap_raw(modules.get("regularMarketDayHigh")),
+        day_low                    = unwrap_raw(modules.get("regularMarketDayLow")),
+        volume                     = unwrap_raw_int(modules.get("regularMarketVolume")),
+        market_time                = epoch_to_datetime(unwrap_raw(modules.get("regularMarketTime"))),
+        pre_market_price           = unwrap_raw(modules.get("preMarketPrice")),
+        pre_market_change          = unwrap_raw(modules.get("preMarketChange")),
+        pre_market_change_percent  = unwrap_raw(modules.get("preMarketChangePercent")),
+        pre_market_time            = epoch_to_datetime(unwrap_raw(modules.get("preMarketTime"))),
+        post_market_price          = unwrap_raw(modules.get("postMarketPrice")),
+        post_market_change         = unwrap_raw(modules.get("postMarketChange")),
+        post_market_change_percent = unwrap_raw(modules.get("postMarketChangePercent")),
+        post_market_time           = epoch_to_datetime(unwrap_raw(modules.get("postMarketTime"))),
+        market_cap                 = unwrap_raw_int(modules.get("marketCap")),
+        shares_outstanding         = unwrap_raw_int(modules.get("sharesOutstanding")),
+        trailing_pe                = unwrap_raw(modules.get("trailingPE")),
+        forward_pe                 = unwrap_raw(modules.get("forwardPE")),
+        price_to_book              = unwrap_raw(modules.get("priceToBook")),
+        trailing_eps               = unwrap_raw(modules.get("trailingEps")),
+        forward_eps                = unwrap_raw(modules.get("forwardEps")),
+        dividend_yield             = unwrap_raw(modules.get("dividendYield")),
+        revenue_growth             = unwrap_raw(modules.get("revenueGrowth")),
+        earnings_growth            = unwrap_raw(modules.get("earningsGrowth")),
+        profit_margin              = unwrap_raw(modules.get("profitMargins")),
+        operating_margin           = unwrap_raw(modules.get("operatingMargins")),
+        return_on_equity           = unwrap_raw(modules.get("returnOnEquity")),
+        fifty_day_average          = unwrap_raw(modules.get("fiftyDayAverage")),
+        two_hundred_day_average    = unwrap_raw(modules.get("twoHundredDayAverage")),
+        fifty_two_week_high        = unwrap_raw(modules.get("fiftyTwoWeekHigh")),
+        fifty_two_week_low         = unwrap_raw(modules.get("fiftyTwoWeekLow")),
+        beta                       = unwrap_raw(modules.get("beta")),
     )

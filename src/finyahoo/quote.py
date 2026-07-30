@@ -24,6 +24,8 @@ class Quote:
 
     ``price``/``previous_close``/``change`` are in the symbol's ``currency``.
     ``change_percent`` is a percent (2.5 is +2.5%), matching Yahoo's own field.
+    The pre/post-market fields carry the extended-hours current price and change
+    snapshots; their ``change_percent`` values are percents like the regular one.
     Every field but ``symbol`` may be ``None`` -- an index has no ``trailing_pe``,
     a pre-market quote no ``volume`` yet.
     """
@@ -55,6 +57,14 @@ class Quote:
     forward_eps: float | None
     dividend_yield: float | None
     market_time: datetime | None
+    pre_market_price: float | None = None
+    pre_market_change: float | None = None
+    pre_market_change_percent: float | None = None
+    pre_market_time: datetime | None = None
+    post_market_price: float | None = None
+    post_market_change: float | None = None
+    post_market_change_percent: float | None = None
+    post_market_time: datetime | None = None
 
 
 def parse_quotes(payload: str) -> tuple[Quote, ...]:
@@ -75,34 +85,42 @@ def parse_quotes(payload: str) -> tuple[Quote, ...]:
 def parse_quote_record(record: dict[str, Any]) -> Quote:
     """One quote record (from ``/v7/finance/quote`` or a screener) into a ``Quote``."""
     return Quote(
-        symbol                  = record.get("symbol", ""),
-        name                    = as_str(record.get("longName"))
+        symbol                     = record.get("symbol", ""),
+        name                       = as_str(record.get("longName"))
                                   or as_str(record.get("shortName"))
                                   or as_str(record.get("displayName")),
-        quote_type              = as_str(record.get("quoteType")),
-        currency                = as_str(record.get("currency")),
-        exchange                = as_str(record.get("fullExchangeName"))
+        quote_type                 = as_str(record.get("quoteType")),
+        currency                   = as_str(record.get("currency")),
+        exchange                   = as_str(record.get("fullExchangeName"))
                                   or as_str(record.get("exchange")),
-        market_state            = as_str(record.get("marketState")),
-        price                   = as_number(record.get("regularMarketPrice")),
-        previous_close          = as_number(record.get("regularMarketPreviousClose")),
-        change                  = as_number(record.get("regularMarketChange")),
-        change_percent          = as_number(record.get("regularMarketChangePercent")),
-        day_open                = as_number(record.get("regularMarketOpen")),
-        day_high                = as_number(record.get("regularMarketDayHigh")),
-        day_low                 = as_number(record.get("regularMarketDayLow")),
-        volume                  = unwrap_raw_int(record.get("regularMarketVolume")),
-        market_cap              = unwrap_raw_int(record.get("marketCap")),
-        shares_outstanding      = unwrap_raw_int(record.get("sharesOutstanding")),
-        fifty_two_week_high     = as_number(record.get("fiftyTwoWeekHigh")),
-        fifty_two_week_low      = as_number(record.get("fiftyTwoWeekLow")),
-        fifty_day_average       = as_number(record.get("fiftyDayAverage")),
-        two_hundred_day_average = as_number(record.get("twoHundredDayAverage")),
-        trailing_pe             = as_number(record.get("trailingPE")),
-        forward_pe              = as_number(record.get("forwardPE")),
-        price_to_book           = as_number(record.get("priceToBook")),
-        trailing_eps            = as_number(record.get("epsTrailingTwelveMonths")),
-        forward_eps             = as_number(record.get("epsForward")),
-        dividend_yield          = as_number(record.get("dividendYield")),
-        market_time             = epoch_to_datetime(record.get("regularMarketTime")),
+        market_state               = as_str(record.get("marketState")),
+        price                      = as_number(record.get("regularMarketPrice")),
+        previous_close             = as_number(record.get("regularMarketPreviousClose")),
+        change                     = as_number(record.get("regularMarketChange")),
+        change_percent             = as_number(record.get("regularMarketChangePercent")),
+        day_open                   = as_number(record.get("regularMarketOpen")),
+        day_high                   = as_number(record.get("regularMarketDayHigh")),
+        day_low                    = as_number(record.get("regularMarketDayLow")),
+        volume                     = unwrap_raw_int(record.get("regularMarketVolume")),
+        market_cap                 = unwrap_raw_int(record.get("marketCap")),
+        shares_outstanding         = unwrap_raw_int(record.get("sharesOutstanding")),
+        fifty_two_week_high        = as_number(record.get("fiftyTwoWeekHigh")),
+        fifty_two_week_low         = as_number(record.get("fiftyTwoWeekLow")),
+        fifty_day_average          = as_number(record.get("fiftyDayAverage")),
+        two_hundred_day_average    = as_number(record.get("twoHundredDayAverage")),
+        trailing_pe                = as_number(record.get("trailingPE")),
+        forward_pe                 = as_number(record.get("forwardPE")),
+        price_to_book              = as_number(record.get("priceToBook")),
+        trailing_eps               = as_number(record.get("epsTrailingTwelveMonths")),
+        forward_eps                = as_number(record.get("epsForward")),
+        dividend_yield             = as_number(record.get("dividendYield")),
+        market_time                = epoch_to_datetime(record.get("regularMarketTime")),
+        pre_market_price           = as_number(record.get("preMarketPrice")),
+        pre_market_change          = as_number(record.get("preMarketChange")),
+        pre_market_change_percent  = as_number(record.get("preMarketChangePercent")),
+        pre_market_time            = epoch_to_datetime(record.get("preMarketTime")),
+        post_market_price          = as_number(record.get("postMarketPrice")),
+        post_market_change         = as_number(record.get("postMarketChange")),
+        post_market_change_percent = as_number(record.get("postMarketChangePercent")),
+        post_market_time           = epoch_to_datetime(record.get("postMarketTime")),
     )

@@ -5,6 +5,8 @@ boxes), the name fallback chain, a missing field reading as None, and the error
 envelope.
 """
 
+from datetime import UTC, datetime
+
 import pytest
 
 from finyahoo import Quote, YahooParseError, YahooRequestError
@@ -17,7 +19,11 @@ _TWO = """
    "regularMarketPrice": 339.25, "regularMarketPreviousClose": 335.0,
    "regularMarketChange": 4.25, "regularMarketChangePercent": 1.27,
    "regularMarketVolume": 41234567, "marketCap": 4900000000000,
-   "trailingPE": 34.2, "regularMarketTime": 1785441600},
+   "trailingPE": 34.2, "regularMarketTime": 1785441600,
+   "preMarketPrice": 340.5, "preMarketChange": 1.25,
+   "preMarketChangePercent": 0.3684, "preMarketTime": 1785470400,
+   "postMarketPrice": 338.75, "postMarketChange": -0.5,
+   "postMarketChangePercent": -0.1474, "postMarketTime": 1785502800},
   {"symbol": "005930.KS", "shortName": "Samsung Elec", "currency": "KRW",
    "regularMarketPrice": 71000}
 ]}}
@@ -53,9 +59,20 @@ def test_a_missing_field_is_none_not_zero():
 
 
 def test_epoch_market_time_becomes_a_datetime():
-    from datetime import datetime
     apple = parse_quotes(_TWO)[0]
     assert isinstance(apple.market_time, datetime)
+
+
+def test_extended_hours_bare_numbers_and_times_are_parsed():
+    apple = parse_quotes(_TWO)[0]
+    assert apple.pre_market_price == pytest.approx(340.5)
+    assert apple.pre_market_change == pytest.approx(1.25)
+    assert apple.pre_market_change_percent == pytest.approx(0.3684)
+    assert apple.pre_market_time == datetime(2026, 7, 31, 4, 0, tzinfo=UTC)
+    assert apple.post_market_price == pytest.approx(338.75)
+    assert apple.post_market_change == pytest.approx(-0.5)
+    assert apple.post_market_change_percent == pytest.approx(-0.1474)
+    assert apple.post_market_time == datetime(2026, 7, 31, 13, 0, tzinfo=UTC)
 
 
 def test_error_envelope_raises_request_error():
