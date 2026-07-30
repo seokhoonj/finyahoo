@@ -1,6 +1,6 @@
 {
   "name": "finyahoo",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "description": "Read Yahoo Finance prices and fundamentals from the command line, powered by the finyahoo CLI",
   "author": { "name": "seokhoonj", "url": "https://github.com/seokhoonj" },
   "homepage": "https://github.com/seokhoonj/finyahoo",
