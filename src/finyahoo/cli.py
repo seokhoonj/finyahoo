@@ -27,7 +27,7 @@ from .errors import YahooError
 from .price import PriceHistory, Timeframe
 from .profile import Profile
 from .quote import Quote
-from .search import Search
+from .search import Search, SearchMatch, SearchNews
 
 # The CLI's --timeframe words, mapped to the library enum. Kept as words so the flag
 # reads (day/week/month), not Yahoo's raw 1d/1wk/1mo.
@@ -172,7 +172,7 @@ def _to_json(result: PriceHistory | Profile) -> str:
                       ensure_ascii=False, indent=2)
 
 
-def _records_to_json(records: Sequence[object]) -> str:
+def _records_to_json(records: Sequence[SearchMatch | SearchNews]) -> str:
     """A sequence of frozen result dataclasses as an indented JSON array, dates rendered
     as ISO strings -- the news/match views emit a list, one object per row."""
     return json.dumps([dataclasses.asdict(record) for record in records],

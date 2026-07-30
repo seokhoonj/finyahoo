@@ -179,6 +179,28 @@ fifty_day_average          308.5888
 two_hundred_day_average    277.21344
 ```
 
+`finyahoo news AAPL` -- related headlines, most recent first (`-n` caps how many):
+
+```
+2026-07-30 17:23  (Barrons.com) Why Apple's Earnings Need 'Zero Blemishes'
+  https://finance.yahoo.com/m/e1c5f464-b42b-35ec-a4ad-d1cbf6358073/why-apple%27s-earnings-need.html
+2026-07-30 17:22  (Investor's Business Daily) Stock Market Today: Nasdaq Rebounds, Chips Jump
+  https://finance.yahoo.com/m/826969c6-014c-37f9-9ed7-da1bab782e05/stock-market-today%3A-nasdaq.html
+2026-07-30 16:54  (GuruFocus.com) Apple Faces a Closely Watched Earnings Test
+  https://finance.yahoo.com/markets/stocks/articles/apple-faces-closely-watched-earnings-165436355.html
+```
+
+`finyahoo match "SK hynix"` -- the Yahoo symbols a name or ticker resolves to, ranked:
+
+```
+SKHY       EQUITY  NASDAQ        Technology  SK hynix Inc.
+000660.KS  EQUITY  Korea         Technology  SK hynix
+SKHX       ETF     BATS Trading  None        Leverage Shares 2X Long SK Hyni
+HY9H.SG    EQUITY  Stuttgart     Technology  SK Hynix Inc. (GDRs)
+HNX3.L     EQUITY  London        None        LEVERAGE SHARES PUBLIC LIMITED
+0193T0.KS  ETF     Korea         None        KODEX SK Hynix Single Stock Lev
+```
+
 ## 7. Use it from an AI coding agent
 
 This repo doubles as a plugin marketplace for Claude Code and Codex, exposing
