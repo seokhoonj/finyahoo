@@ -185,11 +185,14 @@ class YahooClient:
         return parse_history(payload, symbol)
 
     def fetch_profile(self, symbol: str) -> Profile:
-        """Fetch ``symbol``'s current fundamentals (sector, size, valuation,
-        growth, margins).
+        """Fetch ``symbol``'s fundamentals and its live price snapshot in one call
+        (sector, size, valuation, growth, margins, plus the current price, the day's
+        change and range, and market state).
 
-        A snapshot as of now, not history -- see ``profile.py``. Mints a crumb on
-        the first call and re-mints once if Yahoo rejects a stale one.
+        A snapshot as of now, not history -- see ``profile.py``. This is the deep
+        single-symbol view; ``fetch_quotes`` reads the snapshot for many symbols at
+        once. Mints a crumb on the first call and re-mints once if Yahoo rejects a
+        stale one.
 
         Raises:
             YahooBlockedError: Yahoo is refusing this client (429) -- back off.

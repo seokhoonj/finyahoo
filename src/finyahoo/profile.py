@@ -20,52 +20,87 @@ point-in-time screen needs dated financials, not this.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
-from .payload import first_dict, unwrap_raw, unwrap_raw_int, unwrap_result
+from .payload import epoch_to_datetime, first_dict, unwrap_raw, unwrap_raw_int, unwrap_result
 
 # The modules this reader asks for and knows how to read. Kept here so the client
 # requests exactly what ``parse_profile`` consumes -- one list, not two that drift.
 # quoteType carries the name; assetProfile the sector/industry; summaryDetail and
-# defaultKeyStatistics the size and valuation; financialData the growth/margins.
+# defaultKeyStatistics the size and valuation; financialData the growth/margins;
+# price the live snapshot (current price, day change/range, market state) -- the
+# same call, so the single-symbol view carries what ``quote`` reads across many.
 PROFILE_MODULES = (
     "quoteType",
     "assetProfile",
     "summaryDetail",
     "defaultKeyStatistics",
     "financialData",
+    "price",
 )
 
 
 @dataclass(frozen=True, slots=True)
 class Profile:
-    """A company's current fundamentals, as far as Yahoo carries them.
+    """A company's fundamentals and its live price snapshot, as far as Yahoo carries them.
+
+    One quoteSummary call answers both: the ``price`` module carries the live snapshot
+    (current price, the day's change and range, market state), the other modules the
+    fundamentals (sector, size, valuation, growth, margins). ``quote`` reads the
+    snapshot for *many* symbols at once; this is the deep single-symbol view.
 
     Every field but ``symbol`` is optional: Yahoo omits what it does not have for a
-    given security, and the absence is ``None``. Ratios are fractions, not percents
-    (``profit_margin=0.21`` is 21%); ``market_cap`` and ``shares_outstanding`` are
-    counts in the symbol's own currency and share unit.
+    given security, and the absence is ``None`` (never 0 -- 0 is a real reading).
+    Ratios are fractions, not percents (``profit_margin=0.21`` is 21%,
+    ``change_percent=-0.05`` is -5%): this is the quoteSummary convention, so
+    ``change_percent`` here is a fraction -- unlike ``Quote.change_percent``, which
+    mirrors the percent the /v7 endpoint gives. ``market_cap``, ``shares_outstanding``,
+    and ``volume`` are counts; prices are in ``currency``.
     """
 
     symbol: str
-    name: str | None
-    sector: str | None
-    industry: str | None
-    currency: str | None
-    market_cap: int | None
-    shares_outstanding: int | None
-    trailing_pe: float | None
-    forward_pe: float | None
-    price_to_book: float | None
-    trailing_eps: float | None
-    revenue_growth: float | None
-    earnings_growth: float | None
-    profit_margin: float | None
-    operating_margin: float | None
-    return_on_equity: float | None
-    fifty_two_week_high: float | None
-    fifty_two_week_low: float | None
-    beta: float | None
+    # Identity.
+    name: str | None = None
+    quote_type: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    exchange: str | None = None
+    currency: str | None = None
+    # Live snapshot -- the price module, the same call (quote reads this across many
+    # symbols; here it rides along with the fundamentals for one).
+    market_state: str | None = None
+    price: float | None = None
+    previous_close: float | None = None
+    change: float | None = None
+    change_percent: float | None = None
+    day_open: float | None = None
+    day_high: float | None = None
+    day_low: float | None = None
+    volume: int | None = None
+    market_time: datetime | None = None
+    # Size.
+    market_cap: int | None = None
+    shares_outstanding: int | None = None
+    # Valuation.
+    trailing_pe: float | None = None
+    forward_pe: float | None = None
+    price_to_book: float | None = None
+    trailing_eps: float | None = None
+    forward_eps: float | None = None
+    dividend_yield: float | None = None
+    # Growth & profitability.
+    revenue_growth: float | None = None
+    earnings_growth: float | None = None
+    profit_margin: float | None = None
+    operating_margin: float | None = None
+    return_on_equity: float | None = None
+    # Trend & risk.
+    fifty_day_average: float | None = None
+    two_hundred_day_average: float | None = None
+    fifty_two_week_high: float | None = None
+    fifty_two_week_low: float | None = None
+    beta: float | None = None
 
 
 def parse_profile(payload: str, symbol: str) -> Profile:
@@ -92,23 +127,39 @@ def parse_profile(payload: str, symbol: str) -> Profile:
             modules.update(module)
 
     return Profile(
-        symbol              = symbol,
-        name                = modules.get("longName") or modules.get("shortName"),
-        sector              = modules.get("sector"),
-        industry            = modules.get("industry"),
-        currency            = modules.get("currency"),
-        market_cap          = unwrap_raw_int(modules.get("marketCap")),
-        shares_outstanding  = unwrap_raw_int(modules.get("sharesOutstanding")),
-        trailing_pe         = unwrap_raw(modules.get("trailingPE")),
-        forward_pe          = unwrap_raw(modules.get("forwardPE")),
-        price_to_book       = unwrap_raw(modules.get("priceToBook")),
-        trailing_eps        = unwrap_raw(modules.get("trailingEps")),
-        revenue_growth      = unwrap_raw(modules.get("revenueGrowth")),
-        earnings_growth     = unwrap_raw(modules.get("earningsGrowth")),
-        profit_margin       = unwrap_raw(modules.get("profitMargins")),
-        operating_margin    = unwrap_raw(modules.get("operatingMargins")),
-        return_on_equity    = unwrap_raw(modules.get("returnOnEquity")),
-        fifty_two_week_high = unwrap_raw(modules.get("fiftyTwoWeekHigh")),
-        fifty_two_week_low  = unwrap_raw(modules.get("fiftyTwoWeekLow")),
-        beta                = unwrap_raw(modules.get("beta")),
+        symbol                  = symbol,
+        name                    = modules.get("longName") or modules.get("shortName"),
+        quote_type              = modules.get("quoteType"),
+        sector                  = modules.get("sector"),
+        industry                = modules.get("industry"),
+        exchange                = modules.get("exchangeName") or modules.get("exchange"),
+        currency                = modules.get("currency"),
+        market_state            = modules.get("marketState"),
+        price                   = unwrap_raw(modules.get("regularMarketPrice")),
+        previous_close          = unwrap_raw(modules.get("regularMarketPreviousClose")),
+        change                  = unwrap_raw(modules.get("regularMarketChange")),
+        change_percent          = unwrap_raw(modules.get("regularMarketChangePercent")),
+        day_open                = unwrap_raw(modules.get("regularMarketOpen")),
+        day_high                = unwrap_raw(modules.get("regularMarketDayHigh")),
+        day_low                 = unwrap_raw(modules.get("regularMarketDayLow")),
+        volume                  = unwrap_raw_int(modules.get("regularMarketVolume")),
+        market_time             = epoch_to_datetime(unwrap_raw(modules.get("regularMarketTime"))),
+        market_cap              = unwrap_raw_int(modules.get("marketCap")),
+        shares_outstanding      = unwrap_raw_int(modules.get("sharesOutstanding")),
+        trailing_pe             = unwrap_raw(modules.get("trailingPE")),
+        forward_pe              = unwrap_raw(modules.get("forwardPE")),
+        price_to_book           = unwrap_raw(modules.get("priceToBook")),
+        trailing_eps            = unwrap_raw(modules.get("trailingEps")),
+        forward_eps             = unwrap_raw(modules.get("forwardEps")),
+        dividend_yield          = unwrap_raw(modules.get("dividendYield")),
+        revenue_growth          = unwrap_raw(modules.get("revenueGrowth")),
+        earnings_growth         = unwrap_raw(modules.get("earningsGrowth")),
+        profit_margin           = unwrap_raw(modules.get("profitMargins")),
+        operating_margin        = unwrap_raw(modules.get("operatingMargins")),
+        return_on_equity        = unwrap_raw(modules.get("returnOnEquity")),
+        fifty_day_average       = unwrap_raw(modules.get("fiftyDayAverage")),
+        two_hundred_day_average = unwrap_raw(modules.get("twoHundredDayAverage")),
+        fifty_two_week_high     = unwrap_raw(modules.get("fiftyTwoWeekHigh")),
+        fifty_two_week_low      = unwrap_raw(modules.get("fiftyTwoWeekLow")),
+        beta                    = unwrap_raw(modules.get("beta")),
     )

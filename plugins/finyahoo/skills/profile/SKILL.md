@@ -1,14 +1,16 @@
 ---
 name: profile
-description: "Fetch a company's current fundamentals snapshot (sector, size, valuation, growth, margins) from Yahoo Finance. Holds no logic of its own -- it calls the finyahoo package's CLI (`finyahoo profile`) and shows the result to the user. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC, limited fields). Trigger phrases: company profile, fundamentals, valuation, market cap, PE ratio, 기업정보, 펀더멘털, 프로파일, 시가총액."
+description: "Fetch one symbol's fundamentals (sector, size, valuation, growth, margins) and its live price snapshot (current price, day change/range, market state) from Yahoo Finance, in one call. Holds no logic of its own -- it calls the finyahoo package's CLI (`finyahoo profile`) and shows the result to the user. The deep single-symbol view; use the quote skill for a live snapshot across many symbols. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC). Trigger phrases: company profile, fundamentals, valuation, market cap, PE ratio, 기업정보, 펀더멘털, 프로파일, 시가총액."
 ---
 
 # finyahoo — company profile
 
-Take a ticker and print its current fundamentals -- sector, market cap, valuation
-multiples, growth, margins. The fetching and parsing live in the finyahoo package (on
-PyPI); this skill is a thin wrapper that calls its CLI and relays the result. An unknown
-ticker or a rate block comes back as a one-line error -- relay it as-is.
+Take a ticker and print one symbol's full snapshot -- its fundamentals (sector, market
+cap, valuation multiples, growth, margins) together with its live price (current price,
+the day's change and range, market state), fetched in one call. The fetching and parsing
+live in the finyahoo package (on PyPI); this skill is a thin wrapper that calls its CLI
+and relays the result. An unknown ticker or a rate block comes back as a one-line error
+-- relay it as-is. For a live snapshot across *many* symbols at once, use the `quote` skill.
 
 ## Prerequisite
 
@@ -26,12 +28,13 @@ That puts the `finyahoo` command on PATH. No API key or login is needed.
 finyahoo profile "<SYMBOL>" [--json]
 ```
 
-- Default output is the populated fields as aligned `name: value` (absent fields are
-  skipped -- an index like `^GSPC` carries only a few).
+- Default output is the populated fields as aligned `name  value` (absent fields are
+  skipped -- an index like `^GSPC` carries fewer).
 - `--json` emits the full snapshot including the `null` fields.
 
-This is a snapshot **as of now**, not history; for dated prices use the `history` skill.
-Every numeric field is optional -- a missing one is null, never `0`.
+This is a snapshot **as of now**, not history; for dated prices use the `history` skill,
+and for a live snapshot across many symbols use `quote`. Every numeric field is optional
+-- a missing one is null, never `0`.
 
 ## Procedure
 

@@ -51,6 +51,26 @@ _BAD_CRUMB = """
 {"quoteSummary": {"result": null, "error": {"code": "Unauthorized", "description": "Invalid Crumb"}}}
 """
 
+# The price module (the live snapshot) rides in the same quoteSummary response as the
+# fundamentals; its changePercent is a fraction (-0.0994 = -9.94%), the quoteSummary
+# convention, not the percent the /v7 quote endpoint gives.
+_WITH_PRICE = """
+{"quoteSummary": {"error": null, "result": [{
+  "quoteType": {"longName": "Micron Technology, Inc."},
+  "price": {
+    "quoteType": "EQUITY",
+    "exchangeName": "NasdaqGS",
+    "marketState": "PRE",
+    "regularMarketPrice": {"raw": 739.0},
+    "regularMarketPreviousClose": {"raw": 820.53},
+    "regularMarketChange": {"raw": -81.53},
+    "regularMarketChangePercent": {"raw": -0.099362604},
+    "regularMarketVolume": {"raw": 67355489},
+    "regularMarketTime": {"raw": 1785355201}
+  }
+}]}}
+"""
+
 
 def test_parses_name_sector_and_the_growth_and_margin_figures():
     profile = parse_profile(_FULL, "005930.KS")
@@ -103,6 +123,30 @@ def test_an_invalid_crumb_is_a_request_error():
     with pytest.raises(YahooRequestError) as excinfo:
         parse_profile(_BAD_CRUMB, "005930.KS")
     assert "Invalid Crumb" in str(excinfo.value)
+
+
+def test_the_price_module_parses_the_live_snapshot():
+    """The price module rides in the same call, so the single-symbol view carries the
+    live snapshot beside the fundamentals -- and change_percent stays the quoteSummary
+    fraction (-0.0994), not the /v7 percent (-9.94)."""
+    profile = parse_profile(_WITH_PRICE, "MU")
+    assert profile.price == pytest.approx(739.0)
+    assert profile.change == pytest.approx(-81.53)
+    assert profile.change_percent == pytest.approx(-0.099362604)  # fraction, not -9.94
+    assert profile.market_state == "PRE"
+    assert profile.exchange == "NasdaqGS"
+    assert profile.quote_type == "EQUITY"
+    assert profile.volume == 67355489
+    assert profile.market_time is not None and profile.market_time.year == 2026
+
+
+def test_a_live_field_absent_when_the_price_module_is_is_none():
+    """A payload with no price module (an older shape, or a security Yahoo gives no
+    live data for) leaves every live field None, not a crash."""
+    profile = parse_profile(_INDEX, "^GSPC")
+    assert profile.price is None
+    assert profile.market_state is None
+    assert profile.market_time is None
 
 
 def test_non_json_payload_raises_parse_error():
