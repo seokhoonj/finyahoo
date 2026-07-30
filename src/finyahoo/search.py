@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .errors import YahooParseError
-from .payload import as_number, each_dict, epoch_to_datetime, load_json
+from .payload import as_number, as_str, each_dict, epoch_to_datetime, load_json
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,12 +70,12 @@ def parse_search(payload: str, query: str) -> Search:
     matches = tuple(
         SearchMatch(
             symbol       = match.get("symbol", ""),
-            name         = match.get("shortname") or match.get("longname"),
-            exchange     = match.get("exchDisp") or match.get("exchange"),
-            quote_type   = match.get("quoteType"),
-            type_display = match.get("typeDisp"),
-            sector       = match.get("sector"),
-            industry     = match.get("industry"),
+            name         = as_str(match.get("shortname")) or as_str(match.get("longname")),
+            exchange     = as_str(match.get("exchDisp")) or as_str(match.get("exchange")),
+            quote_type   = as_str(match.get("quoteType")),
+            type_display = as_str(match.get("typeDisp")),
+            sector       = as_str(match.get("sector")),
+            industry     = as_str(match.get("industry")),
             score        = as_number(match.get("score")),
         )
         for match in each_dict(root.get("quotes", []), "search quotes")
@@ -83,9 +83,9 @@ def parse_search(payload: str, query: str) -> Search:
     news = tuple(
         SearchNews(
             uuid            = item.get("uuid", ""),
-            title           = item.get("title"),
-            publisher       = item.get("publisher"),
-            link            = item.get("link"),
+            title           = as_str(item.get("title")),
+            publisher       = as_str(item.get("publisher")),
+            link            = as_str(item.get("link")),
             published_at    = epoch_to_datetime(item.get("providerPublishTime")),
             related_tickers = tuple(t for t in item.get("relatedTickers", []) if isinstance(t, str)),
         )

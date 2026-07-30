@@ -120,6 +120,16 @@ def as_bool(value: object) -> bool | None:
     return value if isinstance(value, bool) else None
 
 
+def as_str(value: object) -> str | None:
+    """A bare string field, or None when it is absent or not a real string.
+
+    The string counterpart to ``as_number``: a JSON number, bool, or ``{..}`` box
+    drifting into a field typed ``str | None`` is rejected rather than silently
+    stored, so the hint stays honest.
+    """
+    return value if isinstance(value, str) else None
+
+
 def dict_or_empty(node: object) -> dict[str, Any]:
     """``node`` if it is a dict, else an empty one.
 

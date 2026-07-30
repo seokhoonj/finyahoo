@@ -20,6 +20,7 @@ from .errors import YahooParseError
 from .payload import (
     as_bool,
     as_number,
+    as_str,
     each_dict,
     epoch_to_date,
     epoch_to_datetime,
@@ -108,7 +109,7 @@ def _parse_contracts(rows: list[dict[str, Any]]) -> tuple[OptionContract, ...]:
         OptionContract(
             contract_symbol    = row.get("contractSymbol", ""),
             strike             = as_number(row.get("strike")),
-            currency           = row.get("currency"),
+            currency           = as_str(row.get("currency")),
             last_price         = as_number(row.get("lastPrice")),
             change             = as_number(row.get("change")),
             change_percent     = as_number(row.get("percentChange")),
@@ -118,7 +119,7 @@ def _parse_contracts(rows: list[dict[str, Any]]) -> tuple[OptionContract, ...]:
             open_interest      = unwrap_raw_int(row.get("openInterest")),
             implied_volatility = as_number(row.get("impliedVolatility")),
             is_in_the_money    = as_bool(row.get("inTheMoney")),
-            contract_size      = row.get("contractSize"),
+            contract_size      = as_str(row.get("contractSize")),
             expiration         = epoch_to_date(row.get("expiration")),
             last_trade         = epoch_to_datetime(row.get("lastTradeDate")),
         )

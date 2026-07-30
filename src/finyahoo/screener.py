@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .payload import each_dict, first_dict, unwrap_raw_int, unwrap_result
+from .payload import as_str, each_dict, first_dict, unwrap_raw_int, unwrap_result
 from .quote import Quote, parse_quote_record
 
 
@@ -43,7 +43,7 @@ def parse_screener(payload: str) -> Screen:
                         "screener")
     return Screen(
         screen_id = result.get("canonicalName", ""),
-        title     = result.get("title"),
+        title     = as_str(result.get("title")),
         total     = unwrap_raw_int(result.get("total")),
         members   = tuple(
             parse_quote_record(record) for record in each_dict(result.get("quotes", []), "screener")

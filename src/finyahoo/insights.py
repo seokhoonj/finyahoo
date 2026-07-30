@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .errors import YahooParseError
-from .payload import as_number, dict_or_empty, each_dict, iso_to_date, unwrap_result
+from .payload import as_number, as_str, dict_or_empty, each_dict, iso_to_date, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,22 +74,22 @@ def parse_insights(payload: str, symbol: str) -> Insights:
     return Insights(
         symbol             = result.get("symbol", symbol),
         target_price       = as_number(recommendation.get("targetPrice")),
-        rating             = recommendation.get("rating"),
-        valuation          = valuation.get("description"),
+        rating             = as_str(recommendation.get("rating")),
+        valuation          = as_str(valuation.get("description")),
         support            = as_number(technicals.get("support")),
         resistance         = as_number(technicals.get("resistance")),
         stop_loss          = as_number(technicals.get("stopLoss")),
         short_term_outlook = _direction(events.get("shortTerm")),
         mid_term_outlook   = _direction(events.get("midTerm")),
         long_term_outlook  = _direction(events.get("longTerm")),
-        sector             = snapshot.get("sectorInfo"),
+        sector             = as_str(snapshot.get("sectorInfo")),
         reports            = tuple(
             InsightReport(
                 report_id    = report.get("id", ""),
-                title        = report.get("title"),
-                provider     = report.get("provider"),
+                title        = as_str(report.get("title")),
+                provider     = as_str(report.get("provider")),
                 published_on = iso_to_date(report.get("publishedOn")),
-                summary      = report.get("summary"),
+                summary      = as_str(report.get("summary")),
             )
             for report in each_dict(result.get("reports", []), "insights reports")
         ),
@@ -102,5 +102,4 @@ def _direction(outlook: object) -> str | None:
     Yahoo nulls a horizon it has no read on, and otherwise carries a
     ``stateDescription`` ("Bullish", "Bearish", ...) that is the one useful leaf.
     """
-    state = dict_or_empty(outlook).get("stateDescription")
-    return state if isinstance(state, str) else None
+    return as_str(dict_or_empty(outlook).get("stateDescription"))

@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from .payload import epoch_to_datetime, first_dict, unwrap_raw, unwrap_raw_int, unwrap_result
+from .payload import as_str, epoch_to_datetime, first_dict, unwrap_raw, unwrap_raw_int, unwrap_result
 
 # The modules this reader asks for and knows how to read. Kept here so the client
 # requests exactly what ``parse_profile`` consumes -- one list, not two that drift.
@@ -133,13 +133,15 @@ def parse_profile(payload: str, symbol: str) -> Profile:
 
     return Profile(
         symbol                  = symbol,
-        name                    = modules.get("longName") or modules.get("shortName"),
-        quote_type              = modules.get("quoteType"),
-        sector                  = modules.get("sector"),
-        industry                = modules.get("industry"),
-        exchange                = modules.get("exchangeName") or modules.get("exchange"),
-        currency                = modules.get("currency"),
-        market_state            = modules.get("marketState"),
+        name                    = as_str(modules.get("longName"))
+                                  or as_str(modules.get("shortName")),
+        quote_type              = as_str(modules.get("quoteType")),
+        sector                  = as_str(modules.get("sector")),
+        industry                = as_str(modules.get("industry")),
+        exchange                = as_str(modules.get("exchangeName"))
+                                  or as_str(modules.get("exchange")),
+        currency                = as_str(modules.get("currency")),
+        market_state            = as_str(modules.get("marketState")),
         price                   = unwrap_raw(modules.get("regularMarketPrice")),
         previous_close          = unwrap_raw(modules.get("regularMarketPreviousClose")),
         change                  = unwrap_raw(modules.get("regularMarketChange")),

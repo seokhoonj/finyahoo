@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .errors import YahooParseError
-from .payload import each_dict, iso_to_date, unwrap_raw, unwrap_result
+from .payload import as_str, each_dict, iso_to_date, unwrap_raw, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,7 +105,7 @@ def _parse_points(rows: list[object]) -> tuple[FinancialPoint, ...]:
         points.append(FinancialPoint(
             as_of_date     = as_of,
             reported_value = reported_value,
-            period_type    = row.get("periodType"),
-            currency       = row.get("currencyCode"),
+            period_type    = as_str(row.get("periodType")),
+            currency       = as_str(row.get("currencyCode")),
         ))
     return tuple(points)

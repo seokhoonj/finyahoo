@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from .payload import as_number, each_dict, epoch_to_datetime, unwrap_raw_int, unwrap_result
+from .payload import as_number, as_str, each_dict, epoch_to_datetime, unwrap_raw_int, unwrap_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,12 +76,14 @@ def parse_quote_record(record: dict[str, Any]) -> Quote:
     """One quote record (from ``/v7/finance/quote`` or a screener) into a ``Quote``."""
     return Quote(
         symbol                  = record.get("symbol", ""),
-        name                    = record.get("longName") or record.get("shortName")
-                                  or record.get("displayName"),
-        quote_type              = record.get("quoteType"),
-        currency                = record.get("currency"),
-        exchange                = record.get("fullExchangeName") or record.get("exchange"),
-        market_state            = record.get("marketState"),
+        name                    = as_str(record.get("longName"))
+                                  or as_str(record.get("shortName"))
+                                  or as_str(record.get("displayName")),
+        quote_type              = as_str(record.get("quoteType")),
+        currency                = as_str(record.get("currency")),
+        exchange                = as_str(record.get("fullExchangeName"))
+                                  or as_str(record.get("exchange")),
+        market_state            = as_str(record.get("marketState")),
         price                   = as_number(record.get("regularMarketPrice")),
         previous_close          = as_number(record.get("regularMarketPreviousClose")),
         change                  = as_number(record.get("regularMarketChange")),
