@@ -6,6 +6,8 @@ absent entirely (an index has no financialData), and the error a bad crumb or
 unknown ticker returns.
 """
 
+from datetime import UTC, datetime
+
 import pytest
 
 from finyahoo import Profile, YahooParseError, YahooRequestError
@@ -65,6 +67,9 @@ _WITH_PRICE = """
     "regularMarketPreviousClose": {"raw": 820.53},
     "regularMarketChange": {"raw": -81.53},
     "regularMarketChangePercent": {"raw": -0.099362604},
+    "regularMarketOpen": {"raw": 832.92},
+    "regularMarketDayHigh": {"raw": 841.8},
+    "regularMarketDayLow": {"raw": 737.88},
     "regularMarketVolume": {"raw": 67355489},
     "regularMarketTime": {"raw": 1785355201}
   }
@@ -128,25 +133,50 @@ def test_an_invalid_crumb_is_a_request_error():
 def test_the_price_module_parses_the_live_snapshot():
     """The price module rides in the same call, so the single-symbol view carries the
     live snapshot beside the fundamentals -- and change_percent stays the quoteSummary
-    fraction (-0.0994), not the /v7 percent (-9.94)."""
+    raw fraction (-0.0994), not the /v7 percent (-9.94)."""
     profile = parse_profile(_WITH_PRICE, "MU")
-    assert profile.price == pytest.approx(739.0)
-    assert profile.change == pytest.approx(-81.53)
-    assert profile.change_percent == pytest.approx(-0.099362604)  # fraction, not -9.94
+    assert profile.price == pytest.approx(739.0, rel=1e-9)
+    assert profile.previous_close == pytest.approx(820.53, rel=1e-9)
+    assert profile.change == pytest.approx(-81.53, rel=1e-9)
+    assert profile.change_percent == pytest.approx(-0.099362604, rel=1e-9)  # raw fraction, not -9.94
+    assert profile.day_open == pytest.approx(832.92, rel=1e-9)
+    assert profile.day_high == pytest.approx(841.8, rel=1e-9)
+    assert profile.day_low == pytest.approx(737.88, rel=1e-9)
     assert profile.market_state == "PRE"
     assert profile.exchange == "NasdaqGS"
     assert profile.quote_type == "EQUITY"
     assert profile.volume == 67355489
-    assert profile.market_time is not None and profile.market_time.year == 2026
+    assert profile.market_time == datetime(2026, 7, 29, 20, 0, 1, tzinfo=UTC)
 
 
-def test_a_live_field_absent_when_the_price_module_is_is_none():
+def test_live_fields_are_none_when_the_price_module_is_absent():
     """A payload with no price module (an older shape, or a security Yahoo gives no
     live data for) leaves every live field None, not a crash."""
     profile = parse_profile(_INDEX, "^GSPC")
     assert profile.price is None
     assert profile.market_state is None
     assert profile.market_time is None
+
+
+def test_a_null_boxed_volume_is_none_not_zero():
+    """volume rides through unwrap_raw_int; a null/empty box must read as None, not 0 --
+    0 shares is a real halted-session reading, not an absence."""
+    import json
+    payload = json.loads(_WITH_PRICE)
+    payload["quoteSummary"]["result"][0]["price"]["regularMarketVolume"] = {"raw": None}
+    assert parse_profile(json.dumps(payload), "MU").volume is None
+
+
+def test_a_key_in_two_modules_resolves_by_profile_modules_order():
+    """When a key appears in two modules with different values, precedence follows
+    PROFILE_MODULES (price is listed last, so it wins) -- not the order Yahoo happened
+    to serialize the modules in, which the merge must not depend on."""
+    import json
+    payload = {"quoteSummary": {"error": None, "result": [{
+        "price": {"currency": "KRW"},           # serialized first, but not last in PROFILE_MODULES
+        "summaryDetail": {"currency": "USD"},
+    }]}}
+    assert parse_profile(json.dumps(payload), "MU").currency == "KRW"
 
 
 def test_non_json_payload_raises_parse_error():

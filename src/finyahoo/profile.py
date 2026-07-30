@@ -1,20 +1,22 @@
-"""Parsing Yahoo's quoteSummary response into a company's fundamentals.
+"""Parsing Yahoo's quoteSummary response into a company's fundamentals and live snapshot.
 
 Pure function of the payload -- no network -- like ``price.py``. The fundamentals a
-company screen is built on: sector, size, valuation, and the growth and margin
-figures a leader is judged on.
+company screen is built on (sector, size, valuation, growth, margins), plus the live
+snapshot the ``price`` module carries (current price, the day's change and range,
+market state); one call answers both.
 
 Yahoo returns it as named modules (``assetProfile``, ``summaryDetail``,
-``defaultKeyStatistics``, ``financialData``), and a value is either a bare string
-(``sector``) or a ``{"raw": .., "fmt": ".."}`` box whose ``raw`` is the number.
-Any module or field may be absent -- an index carries only ``summaryDetail``, a
-young company has no ``trailingPE`` -- so every numeric field is optional and a
-missing one is ``None``, never 0, because 0 is a real reading (a company with no
-debt, a stock no institution holds).
+``defaultKeyStatistics``, ``financialData``, ``price``), and a value is either a bare
+string (``sector``, ``marketState``) or a ``{"raw": .., "fmt": ".."}`` box whose
+``raw`` is the number. Any module or field may be absent -- an index carries only
+``summaryDetail`` and ``price``, a young company has no ``trailingPE`` -- so every
+field but ``symbol`` is optional and a missing one is ``None``, never 0, because 0 is
+a real reading (a company with no debt, a stock no institution holds).
 
-This is a **snapshot**, not history: Yahoo reports the fundamentals as of now, with
-no as-of date, so a value read today cannot be placed at a past bar. A
-point-in-time screen needs dated financials, not this.
+This is a **snapshot**, not history: Yahoo reports it as of now, with no as-of date,
+so a value read today cannot be placed at a past bar. A point-in-time screen needs
+dated financials, not this. ``change_percent`` is the quoteSummary ``raw`` -- a
+fraction (-0.05 is -5%), unlike ``Quote.change_percent``, the percent /v7 gives.
 """
 
 from __future__ import annotations
@@ -104,7 +106,7 @@ class Profile:
 
 
 def parse_profile(payload: str, symbol: str) -> Profile:
-    """Parse a quoteSummary response into ``symbol``'s fundamentals.
+    """Parse a quoteSummary response into ``symbol``'s fundamentals and live snapshot.
 
     ``symbol`` is passed rather than read from the payload, which does not reliably
     echo it.
@@ -117,12 +119,15 @@ def parse_profile(payload: str, symbol: str) -> Profile:
     result = first_dict(unwrap_result(payload, "quoteSummary", "profile", symbol), "profile")
 
     # Merge the modules into one flat lookup, so the reader is spared knowing which
-    # module holds which field. The few keys that appear in more than one module
-    # (e.g. currency, in both summaryDetail and financialData) carry the same value,
-    # so a later module overwriting an earlier one is harmless; PROFILE_MODULES sets
-    # the order if that assumption ever fails to hold.
+    # module holds which field. A few keys appear in more than one module (currency in
+    # summaryDetail and financialData; marketCap/quoteType/longName in price too) and
+    # carry the same value, so a later module overwriting an earlier one is harmless.
+    # Iterating PROFILE_MODULES (not result's payload order) makes that precedence
+    # deterministic -- the last module listed wins -- rather than depending on the
+    # order Yahoo happens to serialize the modules in.
     modules: dict[str, Any] = {}
-    for module in result.values():
+    for name in PROFILE_MODULES:
+        module = result.get(name)
         if isinstance(module, dict):
             modules.update(module)
 
