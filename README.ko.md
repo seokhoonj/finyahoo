@@ -32,7 +32,7 @@ print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
 print(len(history.splits), "splits,", len(history.dividends), "dividends")
 
 profile = yahoo.fetch_profile("AAPL")
-print(profile.price, profile.sector, profile.market_cap, profile.trailing_pe)
+print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
 심볼은 Yahoo 티커입니다: 미국주는 그대로(`AAPL`), 한국주는 시장 접미사(`005930.KS`
@@ -57,8 +57,8 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
 | 메서드 | 반환 |
 |---|---|
 | `fetch_history(symbol, *, start, end, timeframe)` | `PriceHistory` — OHLCV 봉 + `Split`/`Dividend` 이벤트 |
-| `fetch_profile(symbol)` | `Profile` — 한 종목의 펀더멘털 + 실시간 시세 스냅샷 |
-| `fetch_quotes(symbols)` | `tuple[Quote]` — 종목별 실시간 스냅샷 |
+| `fetch_profile(symbol)` | `Profile` — 한 종목의 현재 펀더멘털 스냅샷 |
+| `fetch_quotes(symbols)` | `tuple[Quote]` — 종목별 실시간 시세 스냅샷 |
 | `fetch_search(query, *, quotes_count, news_count)` | `Search` — 종목 매칭 + 관련 뉴스 |
 | `fetch_timeseries(symbol, metric_types, *, start, end)` | `tuple[FinancialSeries]` — 날짜 있는 재무 항목 |
 | `fetch_spark(symbols, *, period, interval)` | `tuple[Spark]` — 종목별 간이 종가 시계열 |
@@ -73,10 +73,8 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
   반영)과, 같은 구간에 있었던 `Split`·`Dividend` 이벤트를 데이터로 함께 담습니다. 양
   끝 경계는 포함(inclusive)이며, 둘 다 기본값은 Yahoo가 가진 가장 넓은 구간입니다.
 - `fetch_profile` — `Profile`: 한 종목의 펀더멘털(섹터·규모·밸류에이션·성장·마진)에
-  더해 실시간 시세 스냅샷(현재가·당일 등락·레인지·장 상태)까지 한 호출로 담습니다.
-  한 종목을 깊게 보는 뷰이고, 여러 종목의 스냅샷은 `fetch_quotes`로 봅니다. 이력이
-  아니라 지금 시점의 스냅샷이며, 모든 수치 필드는 선택적이라 없는 값은 `0`이 아니라
-  `None`입니다.
+  관한 지금 시점의 스냅샷을 담습니다. 이력이 아니며, 모든 수치 필드는 선택적이라
+  없는 값은 `0`이 아니라 `None`입니다.
 
 ## 5. 데이터프레임
 
@@ -101,15 +99,14 @@ prices = pl.DataFrame(history.bars)
 ```sh
 finyahoo history AAPL --start 2024-01-01  # OHLCV 봉 + 분할/배당 이벤트
 finyahoo history ^GSPC --timeframe week   # 지수의 주봉
-finyahoo profile AAPL                     # 펀더멘털 + 실시간 시세 스냅샷
+finyahoo profile AAPL                     # 현재 펀더멘털
 finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
-finyahoo quote MU NVDA 005930.KS          # 종목별 실시간 스냅샷 (워치리스트 표)
-finyahoo quote AAPL                       # 한 종목: 전체 스냅샷
+finyahoo quote MU                          # 한 종목 실시간 시세
 ```
 
 각 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다. 어느 것이든
-`--help`(`finyahoo quote --help`)로 옵션을 확인하세요. `quote`는 심볼을 하나 이상 받는데,
-하나면 전체 스냅샷, 여러 개면 `SYMBOL PRICE CHG% STATE` 좁은 표로 냅니다.
+`--help`(`finyahoo quote --help`)로 옵션을 확인하세요. `quote`는 심볼 하나를 받아 실시간
+시세 스냅샷을 보여주고, `profile`은 해당 종목의 펀더멘털을 보여줍니다.
 
 ## 7. AI 코딩 에이전트에서 사용
 
@@ -125,7 +122,7 @@ finyahoo quote AAPL                       # 한 종목: 전체 스냅샷
 ```
 
 그런 다음 평범하게 물어보거나("AAPL 프로파일 보여줘", "MU 지금 얼마야?"), 스킬을 직접
-호출하세요 — `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`, `/finyahoo:quote MU NVDA`.
+호출하세요 — `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`, `/finyahoo:quote MU`.
 
 ### 7.2. Codex
 

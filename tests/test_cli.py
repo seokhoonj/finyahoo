@@ -5,6 +5,7 @@ result is rendered; the tests pin the text/JSON output, the error contract (a do
 failure becomes `finyahoo: ...` on stderr and exit 1), and argparse's own guards.
 """
 
+import dataclasses
 import json
 import subprocess
 import sys
@@ -139,57 +140,52 @@ def test_profile_json_carries_every_field(monkeypatch, capsys):
     assert payload["beta"] is None              # JSON keeps the full shape, Nones included
 
 
-def test_quote_single_symbol_shows_aligned_fields_and_skips_none(monkeypatch, capsys):
-    _install_fake_yahoo_client(monkeypatch, quotes=(_QUOTES[0],))
+def test_quote_single_symbol_shows_the_live_snapshot_and_omits_valuation(monkeypatch, capsys):
+    quote = dataclasses.replace(_QUOTES[0], trailing_pe=18.55, market_cap=834_000_000)
+    _install_fake_yahoo_client(monkeypatch, quotes=(quote,))
     assert main(["quote", "MU"]) == 0
     out = capsys.readouterr().out
     assert "symbol" in out and "MU" in out
     assert "price" in out and "783" in out
     assert "market_state" in out and "REGULAR" in out
-    assert "previous_close" not in out           # a None field is not printed
+    assert "previous_close" not in out           # a None live field is skipped
+    assert "trailing_pe" not in out              # valuation is the profile's view, not the quote's
+    assert "market_cap" not in out
 
 
-def test_quote_multiple_symbols_render_a_table(monkeypatch, capsys):
-    _install_fake_yahoo_client(monkeypatch, quotes=_QUOTES)
-    assert main(["quote", "MU", "005930.KS"]) == 0
-    out = capsys.readouterr().out
-    assert out.splitlines()[0].split() == ["SYMBOL", "PRICE", "CHG%", "STATE"]
-    assert "208,500.00" in out                   # KRW price carries thousands separators
-    assert "-4.57%" in out and "-5.23%" in out   # change is signed
-    assert "PREPRE" in out                       # market state per row
-
-
-def test_quote_json_is_a_list_keeping_the_full_shape(monkeypatch, capsys):
-    _install_fake_yahoo_client(monkeypatch, quotes=(_QUOTES[0],))
+def test_quote_json_is_the_full_record(monkeypatch, capsys):
+    quote = dataclasses.replace(_QUOTES[0], trailing_pe=18.55)
+    _install_fake_yahoo_client(monkeypatch, quotes=(quote,))
     assert main(["quote", "MU", "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert isinstance(payload, list) and len(payload) == 1
-    assert payload[0]["symbol"] == "MU"
-    assert payload[0]["previous_close"] is None                  # Nones kept in JSON
-    assert payload[0]["market_time"] == "2026-07-29T17:13:27+00:00"   # datetime as ISO
+    assert isinstance(payload, dict)                             # one object, not a list
+    assert payload["symbol"] == "MU"
+    assert payload["trailing_pe"] == 18.55                       # --json keeps what the text view omits
+    assert payload["previous_close"] is None                     # Nones kept in JSON
+    assert payload["market_time"] == "2026-07-29T17:13:27+00:00"  # datetime as ISO
 
 
-def test_quote_forwards_every_symbol(monkeypatch):
-    """All symbols reach fetch_quotes, in order -- a dropped ticker would ship green."""
+def test_quote_forwards_the_symbol_as_a_one_element_list(monkeypatch):
+    """The symbol reaches fetch_quotes -- a lost ticker would ship green."""
     calls = []
 
     class _Recorder(_FakeYahoo):
         def fetch_quotes(self, symbols):
             calls.append(symbols)
-            return _QUOTES
+            return (_QUOTES[0],)
 
     monkeypatch.setattr("finyahoo.cli.YahooClient",
-                        lambda *a, **k: _Recorder(quotes=_QUOTES))
-    assert main(["quote", "MU", "NVDA", "005930.KS"]) == 0
-    assert calls == [["MU", "NVDA", "005930.KS"]]
+                        lambda *a, **k: _Recorder(quotes=(_QUOTES[0],)))
+    assert main(["quote", "MU"]) == 0
+    assert calls == [["MU"]]
 
 
-def test_quote_with_no_matches_says_so(monkeypatch, capsys):
-    """An all-unknown request is a legitimately empty result, not an error; the text
-    view says so rather than printing a blank line."""
+def test_quote_unknown_symbol_is_a_one_line_error(monkeypatch, capsys):
+    """/v7 answers an unknown symbol with an empty list, not an error; the CLI reports
+    it on stderr and exits 1 rather than crashing on the empty result."""
     _install_fake_yahoo_client(monkeypatch, quotes=())
-    assert main(["quote", "NOSUCH"]) == 0
-    assert "no quotes" in capsys.readouterr().out
+    assert main(["quote", "NOSUCH"]) == 1
+    assert "no quote for NOSUCH" in capsys.readouterr().err
 
 
 def test_a_domain_error_is_one_line_on_stderr_and_exit_1(monkeypatch, capsys):

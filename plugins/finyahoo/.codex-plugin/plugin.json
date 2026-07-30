@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "finyahoo",
     "shortDescription": "Read Yahoo Finance prices and fundamentals",
-    "longDescription": "Fetch a symbol's OHLCV price history, its fundamentals plus live price snapshot (profile), or a live quote across many symbols from Yahoo Finance via the finyahoo CLI. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC).",
+    "longDescription": "Fetch a symbol's OHLCV price history, its company fundamentals (profile), or its live price snapshot (quote) from Yahoo Finance via the finyahoo CLI. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC).",
     "developerName": "seokhoonj",
     "category": "Productivity",
     "capabilities": [],

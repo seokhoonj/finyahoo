@@ -33,7 +33,7 @@ print(latest.trade_date, latest.close, latest.adj_close, latest.volume)
 print(len(history.splits), "splits,", len(history.dividends), "dividends")
 
 profile = yahoo.fetch_profile("AAPL")
-print(profile.price, profile.sector, profile.market_cap, profile.trailing_pe)
+print(profile.sector, profile.market_cap, profile.trailing_pe)
 ```
 
 Symbols are Yahoo tickers: a US stock is bare (`AAPL`), a Korean one carries the
@@ -59,8 +59,8 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
 | method | returns |
 |---|---|
 | `fetch_history(symbol, *, start, end, timeframe)` | `PriceHistory` — OHLCV bars + `Split`/`Dividend` events |
-| `fetch_profile(symbol)` | `Profile` — fundamentals + live price snapshot for one symbol |
-| `fetch_quotes(symbols)` | `tuple[Quote]` — live snapshot per symbol |
+| `fetch_profile(symbol)` | `Profile` — current fundamentals snapshot for one symbol |
+| `fetch_quotes(symbols)` | `tuple[Quote]` — live price snapshot per symbol |
 | `fetch_search(query, *, quotes_count, news_count)` | `Search` — symbol matches + related news |
 | `fetch_timeseries(symbol, metric_types, *, start, end)` | `tuple[FinancialSeries]` — dated financial line items |
 | `fetch_spark(symbols, *, period, interval)` | `tuple[Spark]` — compact close series per symbol |
@@ -76,10 +76,8 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
   fell in the same span, carried as data. Both bounds inclusive; both default to
   the widest window Yahoo has.
 - `fetch_profile` — a `Profile`: one symbol's fundamentals (sector, size, valuation,
-  growth, margins) **and** its live price snapshot (current price, the day's change
-  and range, market state), in one call. The deep single-symbol view; `fetch_quotes`
-  reads the snapshot across many symbols. A snapshot as of now, not history; every
-  numeric field is optional and a missing one is `None`, never `0`.
+  growth, margins). A snapshot as of now, not history; every numeric field is
+  optional and a missing one is `None`, never `0`.
 
 ## 5. DataFrames
 
@@ -105,16 +103,14 @@ Installing the package puts a `finyahoo` command on PATH (also `python -m finyah
 ```sh
 finyahoo history AAPL --start 2024-01-01  # OHLCV bars + split/dividend events
 finyahoo history ^GSPC --timeframe week   # weekly bars for an index
-finyahoo profile AAPL                     # fundamentals + live price snapshot
+finyahoo profile AAPL                     # current fundamentals
 finyahoo profile 005930.KS --json         # full snapshot as JSON
-finyahoo quote MU NVDA 005930.KS          # live snapshot per symbol (watchlist table)
-finyahoo quote AAPL                       # one symbol: the full snapshot
+finyahoo quote MU                          # live price snapshot for one symbol
 ```
 
 Each subcommand prints a readable summary by default and the full result with `--json`;
-`--help` on any of them (`finyahoo quote --help`) lists the flags. `quote` takes one or
-more symbols -- one prints the full snapshot, several a compact `SYMBOL PRICE CHG% STATE`
-table.
+`--help` on any of them (`finyahoo quote --help`) lists the flags. `quote` takes one
+symbol and prints its live price snapshot; `profile` prints that symbol's fundamentals.
 
 ## 7. Use it from an AI coding agent
 
@@ -131,7 +127,7 @@ so install the package first (above); no key or login is involved.
 
 Then ask in plain words ("show AAPL's profile", "what's MU trading at?"), or invoke a
 skill explicitly — `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`,
-`/finyahoo:quote MU NVDA`.
+`/finyahoo:quote MU`.
 
 ### 7.2. Codex
 
