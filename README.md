@@ -105,7 +105,7 @@ finyahoo history AAPL --start 2024-01-01  # OHLCV bars + split/dividend events
 finyahoo history ^GSPC --timeframe week   # weekly bars for an index
 finyahoo profile AAPL                     # current fundamentals
 finyahoo profile 005930.KS --json         # full snapshot as JSON
-finyahoo quote MU                          # live price snapshot for one symbol
+finyahoo quote MU                         # live price snapshot for one symbol
 ```
 
 Each subcommand prints a readable summary by default and the full result with `--json`;

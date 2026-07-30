@@ -101,12 +101,70 @@ finyahoo history AAPL --start 2024-01-01  # OHLCV 봉 + 분할/배당 이벤트
 finyahoo history ^GSPC --timeframe week   # 지수의 주봉
 finyahoo profile AAPL                     # 현재 펀더멘털
 finyahoo profile 005930.KS --json         # 전체 스냅샷을 JSON으로
-finyahoo quote MU                          # 한 종목 실시간 시세
+finyahoo quote MU                         # 한 종목 실시간 시세
 ```
 
 각 서브커맨드 모두 기본은 읽기 좋은 요약, `--json`은 전체 결과를 냅니다. 어느 것이든
 `--help`(`finyahoo quote --help`)로 옵션을 확인하세요. `quote`는 심볼 하나를 받아 실시간
 시세 스냅샷을 보여주고, `profile`은 해당 종목의 펀더멘털을 보여줍니다.
+
+### 예시 출력
+
+`finyahoo history 005930.KS`는 한 줄 요약과 최근 봉을 다음과 같이 보여줍니다.
+
+```
+005930.KS  6643 bars  (2 splits, 59 dividends)
+  2026-07-24  close 249,500.0000  adj 249,500.0000  vol 26,175,580
+  2026-07-27  close 254,000.0000  adj 254,000.0000  vol 23,296,044
+  2026-07-28  close 220,000.0000  adj 220,000.0000  vol 41,639,623
+  2026-07-29  close 208,500.0000  adj 208,500.0000  vol 65,555,523
+  2026-07-30  close 207,000.0000  adj 207,000.0000  vol 50,259,720
+```
+
+`finyahoo profile 005930.KS`는 기업 펀더멘털을 다음과 같이 보여줍니다.
+
+```
+symbol               005930.KS
+name                 Samsung Electronics Co., Ltd.
+sector               Technology
+industry             Consumer Electronics
+currency             KRW
+market_cap           1359278631813120
+shares_outstanding   5764191903
+forward_pe           3.1737533
+revenue_growth       0.692
+earnings_growth      4.921
+profit_margin        0.21459
+operating_margin     0.42751
+return_on_equity     0.18855
+fifty_two_week_high  374500.0
+fifty_two_week_low   67500.0
+beta                 1.479
+```
+
+`finyahoo quote 005930.KS`는 장 마감 후의 실시간 시세 스냅샷을 보여주며, 국내 거래소 종목이므로 프리마켓·애프터마켓 필드는 없습니다.
+
+```
+symbol                   005930.KS
+name                     Samsung Electronics Co., Ltd.
+quote_type               EQUITY
+exchange                 KSE
+currency                 KRW
+market_state             POSTPOST
+price                    207000.0
+previous_close           208500.0
+change                   -1500.0
+change_percent           -0.7194245
+day_open                 214000.0
+day_high                 226000.0
+day_low                  202000.0
+volume                   50259720
+market_time              2026-07-30 06:30:23+00:00
+fifty_day_average        301250.0
+two_hundred_day_average  193301.25
+```
+
+표시된 값은 조회 시점 기준의 스냅샷입니다.
 
 ## 7. AI 코딩 에이전트에서 사용
 
