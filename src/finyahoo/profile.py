@@ -25,7 +25,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from .payload import as_str, epoch_to_datetime, first_dict, unwrap_raw, unwrap_raw_int, unwrap_result
+from .payload import (
+    as_str,
+    epoch_to_datetime,
+    first_dict,
+    unwrap_raw,
+    unwrap_raw_int,
+    unwrap_result,
+)
 
 # The modules this reader asks for and knows how to read. Kept here so the client
 # requests exactly what ``parse_profile`` consumes -- one list, not two that drift.
