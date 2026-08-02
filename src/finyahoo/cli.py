@@ -23,6 +23,7 @@ from datetime import date
 
 from . import __version__
 from .client import YahooClient
+from .consensus import Consensus
 from .errors import YahooError
 from .price import PriceHistory, Timeframe
 from .profile import Profile
@@ -92,6 +93,12 @@ def _make_parser() -> argparse.ArgumentParser:
     profile.add_argument("--json", action="store_true", help="emit JSON instead of text")
     profile.set_defaults(run=_run_profile)
 
+    consensus = commands.add_parser(
+        "consensus", help="sell-side analyst target range and rating for one symbol")
+    consensus.add_argument("symbol", help="a Yahoo ticker (AAPL, 005930.KS, ^GSPC)")
+    consensus.add_argument("--json", action="store_true", help="emit JSON instead of text")
+    consensus.set_defaults(run=_run_consensus)
+
     quote = commands.add_parser(
         "quote", help="live price snapshot for one symbol")
     quote.add_argument("symbol", help="a Yahoo ticker (AAPL, 005930.KS, ^GSPC)")
@@ -135,6 +142,13 @@ def _run_profile(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_consensus(args: argparse.Namespace) -> int:
+    with YahooClient() as yahoo:
+        consensus = yahoo.fetch_consensus(args.symbol)
+    print(_to_json(consensus) if args.json else _render_consensus(consensus))
+    return 0
+
+
 def _run_quote(args: argparse.Namespace) -> int:
     with YahooClient() as yahoo:
         quotes = yahoo.fetch_quotes([args.symbol])
@@ -166,7 +180,7 @@ def _run_match(args: argparse.Namespace) -> int:
     return 0
 
 
-def _to_json(result: PriceHistory | Profile) -> str:
+def _to_json(result: PriceHistory | Profile | Consensus) -> str:
     """A frozen result dataclass as indented JSON, dates rendered as ISO strings."""
     return json.dumps(dataclasses.asdict(result), default=_json_default,
                       ensure_ascii=False, indent=2)
@@ -232,6 +246,26 @@ def _render_profile(profile: Profile) -> str:
              for field in dataclasses.fields(profile)
              if getattr(profile, field.name) is not None]
     return _aligned(pairs)
+
+
+def _count(value: int | None) -> str:
+    """A rating count for the text view: a dash for an absent bucket, the number
+    otherwise (a real 0 stays 0)."""
+    return "-" if value is None else str(value)
+
+
+def _render_consensus(consensus: Consensus) -> str:
+    """The scalar consensus fields as aligned ``name  value`` (absent ones skipped),
+    then one line per rating-trend bucket (most-recent first)."""
+    pairs = [(f.name, getattr(consensus, f.name))
+             for f in dataclasses.fields(consensus)
+             if f.name != "trend" and getattr(consensus, f.name) is not None]
+    lines = [_aligned(pairs)]
+    for bucket in consensus.trend:
+        lines.append(f"  {bucket.period:>4}  strong_buy {_count(bucket.strong_buy)}"
+                     f"  buy {_count(bucket.buy)}  hold {_count(bucket.hold)}"
+                     f"  sell {_count(bucket.sell)}  strong_sell {_count(bucket.strong_sell)}")
+    return "\n".join(lines)
 
 
 def _render_quote(quote: Quote) -> str:

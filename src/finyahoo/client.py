@@ -5,7 +5,7 @@ The client is the imperative shell over the pure parsers in the endpoint modules
 the crumb, and each ``fetch_*`` method reaches one endpoint on the same host and
 hands the payload to that endpoint's parser. So it is one client with a method per
 endpoint -- chart, quoteSummary, quote, search, spark, timeseries, options,
-recommendations, insights, screener -- not a client per endpoint.
+recommendations, insights, consensus, screener -- not a client per endpoint.
 
 The one thing that makes it work: **the session impersonates Chrome's TLS
 fingerprint**, through ``curl_cffi``. Yahoo blocks a client whose handshake does
@@ -38,6 +38,7 @@ from urllib.parse import quote
 
 from curl_cffi import requests
 
+from .consensus import CONSENSUS_MODULES, Consensus, parse_consensus
 from .errors import YahooBlockedError, YahooRequestError
 from .insights import Insights, parse_insights
 from .options import OptionChain, parse_options
@@ -335,6 +336,26 @@ class YahooClient:
             YahooParseError: the payload was not the insights shape.
         """
         return parse_insights(self._get_crumbed(_INSIGHTS_URL, {"symbol": symbol}), symbol)
+
+    def fetch_consensus(self, symbol: str) -> Consensus:
+        """Fetch the sell-side analyst consensus for ``symbol`` -- the target-price
+        range, the mean rating and how many opinions back it, and the recent monthly
+        rating trend.
+
+        The across-analyst aggregate Yahoo builds, distinct from the single
+        third-party (Trading Central) call in ``fetch_insights`` and from the
+        company's own fundamentals in ``fetch_profile``. A snapshot as of now (only
+        the rating trend is dated). Mints a crumb on the first call and re-mints once
+        if Yahoo rejects a stale one.
+
+        Raises:
+            YahooBlockedError: Yahoo is refusing this client (429) -- back off.
+            YahooRequestError: the request failed, or the symbol is unknown.
+            YahooParseError: the payload was not the quoteSummary shape.
+        """
+        url = _SUMMARY_URL.format(symbol=quote(symbol, safe=""))
+        return parse_consensus(
+            self._get_crumbed(url, {"modules": ",".join(CONSENSUS_MODULES)}), symbol)
 
     def fetch_screener(self, screen_id: str, *, page_size: int = 25) -> Screen:
         """Run one of Yahoo's predefined screens (``most_actives``,

@@ -11,7 +11,7 @@ Read prices and fundamentals from Yahoo Finance.
 
 Daily, weekly, and monthly open/high/low/close and volume, the adjusted close,
 dividends and splits, company fundamentals (sector, market cap, valuation, ...),
-live quotes, options, screeners, and news.
+the sell-side analyst consensus, live quotes, options, screeners, and news.
 
 ## 1. Install
 
@@ -67,6 +67,7 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
 | `fetch_options(symbol, *, expiration)` | `OptionChain` — calls/puts for one expiration |
 | `fetch_recommendations(symbol)` | `tuple[Recommendation]` — similar symbols |
 | `fetch_insights(symbol)` | `Insights` — a third-party (Trading Central) target and rating, valuation, outlooks, reports |
+| `fetch_consensus(symbol)` | `Consensus` — the sell-side target range, mean rating, and monthly rating trend |
 | `fetch_screener(screen_id, *, page_size)` | `Screen` — a predefined screen's members (as `Quote`s) |
 
 ### The two core reads
@@ -76,10 +77,9 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
   fell in the same span, carried as data. Both bounds inclusive; both default to
   the widest window Yahoo has.
 - `fetch_profile` — a `Profile`: one symbol's fundamentals (sector, size, valuation,
-  growth, margins) and the sell-side analyst consensus (target-price range, mean
-  rating, and how many opinions back it — distinct from the single Trading Central
-  call in `fetch_insights`). A snapshot as of now, not history; every numeric field
-  is optional and a missing one is `None`, never `0`.
+  growth, margins). A snapshot as of now, not history; every numeric field is
+  optional and a missing one is `None`, never `0`. The analyst view is its own read,
+  `fetch_consensus`.
 
 ## 5. DataFrames
 
@@ -153,6 +153,12 @@ return_on_equity     1.4147099
 fifty_two_week_high  344.57
 fifty_two_week_low   201.5
 beta                 1.097
+```
+
+`finyahoo consensus AAPL` -- the sell-side analyst view (target range, rating, and the recent rating trend):
+
+```
+symbol               AAPL
 target_high_price    400.0
 target_low_price     215.0
 target_mean_price    323.28195
@@ -160,6 +166,9 @@ target_median_price  330.0
 recommendation_mean  2.04348
 recommendation       buy
 analyst_count        41
+    0m  strong_buy 6  buy 22  hold 14  sell 2  strong_sell 2
+   -1m  strong_buy 6  buy 22  hold 16  sell 1  strong_sell 2
+   -2m  strong_buy 7  buy 23  hold 15  sell 1  strong_sell 2
 ```
 
 `finyahoo quote AAPL` -- the live price snapshot:

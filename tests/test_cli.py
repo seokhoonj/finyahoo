@@ -13,7 +13,16 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from finyahoo import Quote, Search, SearchMatch, SearchNews, Timeframe, YahooRequestError
+from finyahoo import (
+    Consensus,
+    Quote,
+    RatingTrend,
+    Search,
+    SearchMatch,
+    SearchNews,
+    Timeframe,
+    YahooRequestError,
+)
 from finyahoo.cli import main
 from finyahoo.price import Dividend, PriceBar, PriceHistory, Split
 from finyahoo.profile import Profile
@@ -37,6 +46,16 @@ _PROFILE = Profile(
     trailing_eps=None, revenue_growth=None, earnings_growth=None, profit_margin=None,
     operating_margin=None, return_on_equity=None, fifty_two_week_high=None,
     fifty_two_week_low=None, beta=None,
+)
+
+_CONSENSUS = Consensus(
+    symbol="AAPL", target_high_price=400.0, target_low_price=215.0,
+    target_mean_price=323.28, target_median_price=330.0, recommendation_mean=2.04,
+    recommendation="buy", analyst_count=41,
+    trend=(
+        RatingTrend("0m", strong_buy=6, buy=22, hold=14, sell=2, strong_sell=2),
+        RatingTrend("-1m", strong_buy=6, buy=22, hold=16, sell=1, strong_sell=2),
+    ),
 )
 
 
@@ -87,9 +106,11 @@ class _FakeYahoo:
     """Stands in for YahooClient: a context manager returning canned results, or
     raising a scripted error from the fetch methods."""
 
-    def __init__(self, *, history=None, profile=None, quotes=None, search=None, error=None):
+    def __init__(self, *, history=None, profile=None, consensus=None, quotes=None,
+                 search=None, error=None):
         self._history = history
         self._profile = profile
+        self._consensus = consensus
         self._quotes = quotes
         self._search = search
         self._error = error
@@ -109,6 +130,11 @@ class _FakeYahoo:
         if self._error is not None:
             raise self._error
         return self._profile
+
+    def fetch_consensus(self, *args, **kwargs):
+        if self._error is not None:
+            raise self._error
+        return self._consensus
 
     def fetch_quotes(self, *args, **kwargs):
         if self._error is not None:
@@ -163,6 +189,25 @@ def test_profile_json_carries_every_field(monkeypatch, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["name"] == "Apple Inc."
     assert payload["beta"] is None              # JSON keeps the full shape, Nones included
+
+
+def test_consensus_text_renders_the_scalars_and_the_rating_trend(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, consensus=_CONSENSUS)
+    assert main(["consensus", "AAPL"]) == 0
+    out = capsys.readouterr().out
+    assert "target_mean_price" in out and "323.28" in out
+    assert "analyst_count" in out and "41" in out
+    assert "0m" in out and "strong_buy 6" in out       # a rating-trend bucket line
+
+
+def test_consensus_json_carries_the_full_record_including_the_trend(monkeypatch, capsys):
+    _install_fake_yahoo_client(monkeypatch, consensus=_CONSENSUS)
+    assert main(["consensus", "AAPL", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["symbol"] == "AAPL"
+    assert payload["target_high_price"] == 400.0
+    assert len(payload["trend"]) == 2                  # nested RatingTrend list kept
+    assert payload["trend"][0]["period"] == "0m"
 
 
 def test_quote_single_symbol_shows_the_live_snapshot_and_omits_valuation(monkeypatch, capsys):

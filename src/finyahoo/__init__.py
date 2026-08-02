@@ -15,8 +15,8 @@ One ``YahooClient`` reaches every endpoint. The two core reads:
 and the wider surface: ``fetch_quotes`` (live snapshot), ``fetch_search`` (symbol
 lookup), ``fetch_timeseries`` (dated financials), ``fetch_spark`` (compact multi-
 symbol series), ``fetch_options`` (option chain), ``fetch_recommendations``
-(similar symbols), ``fetch_insights`` (gathered research), ``fetch_screener``
-(predefined screens).
+(similar symbols), ``fetch_insights`` (gathered research), ``fetch_consensus``
+(sell-side analyst consensus), ``fetch_screener`` (predefined screens).
 
 Reaches Yahoo through ``curl_cffi``'s Chrome TLS impersonation, without which the
 endpoints answer 429.
@@ -30,6 +30,7 @@ endpoints answer 429.
 from importlib.metadata import PackageNotFoundError, version
 
 from .client import YahooClient
+from .consensus import Consensus, RatingTrend
 from .errors import (
     YahooBlockedError,
     YahooError,
@@ -54,6 +55,7 @@ from .spark import Spark, SparkInterval, SparkPeriod, SparkPoint
 from .timeseries import FinancialPoint, FinancialSeries
 
 __all__ = [
+    "Consensus",
     "Dividend",
     "FinancialPoint",
     "FinancialSeries",
@@ -65,6 +67,7 @@ __all__ = [
     "PriceHistory",
     "Profile",
     "Quote",
+    "RatingTrend",
     "Recommendation",
     "Screen",
     "Search",
