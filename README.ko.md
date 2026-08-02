@@ -64,7 +64,7 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
 | `fetch_spark(symbols, *, period, interval)` | `tuple[Spark]` — 종목별 간이 종가 시계열 |
 | `fetch_options(symbol, *, expiration)` | `OptionChain` — 한 만기의 콜/풋 |
 | `fetch_recommendations(symbol)` | `tuple[Recommendation]` — 유사 종목 |
-| `fetch_insights(symbol)` | `Insights` — 목표가·밸류에이션·전망·리포트 |
+| `fetch_insights(symbol)` | `Insights` — 서드파티(Trading Central) 목표가·등급, 밸류에이션·전망·리포트 |
 | `fetch_screener(screen_id, *, page_size)` | `Screen` — 사전정의 스크린 구성종목(`Quote`) |
 
 ### 핵심 두 가지
@@ -72,9 +72,10 @@ yahoo = YahooClient(timeout=10, delay_seconds=1.0)
 - `fetch_history` — `PriceHistory`: OHLCV 봉(`close`는 수정주가, `adj_close`는 배당까지
   반영)과, 같은 구간에 있었던 `Split`·`Dividend` 이벤트를 데이터로 함께 담습니다. 양
   끝 경계는 포함(inclusive)이며, 둘 다 기본값은 Yahoo가 가진 가장 넓은 구간입니다.
-- `fetch_profile` — `Profile`: 한 종목의 펀더멘털(섹터·규모·밸류에이션·성장·마진)에
-  관한 지금 시점의 스냅샷을 담습니다. 이력이 아니며, 모든 수치 필드는 선택적이라
-  없는 값은 `0`이 아니라 `None`입니다.
+- `fetch_profile` — `Profile`: 한 종목의 펀더멘털(섹터·규모·밸류에이션·성장·마진)과
+  sell-side 애널리스트 컨센서스(목표가 범위·평균 등급·의견 수 — `fetch_insights`의
+  Trading Central 단일 값과는 별개)에 관한 지금 시점의 스냅샷을 담습니다. 이력이
+  아니며, 모든 수치 필드는 선택적이라 없는 값은 `0`이 아니라 `None`입니다.
 
 ## 5. 데이터프레임
 
@@ -143,6 +144,13 @@ return_on_equity     0.18855
 fifty_two_week_high  374500.0
 fifty_two_week_low   67500.0
 beta                 1.479
+target_high_price    725000.0
+target_low_price     210000.0
+target_mean_price    470630.3
+target_median_price  450000.0
+recommendation_mean  1.35135
+recommendation       strong_buy
+analyst_count        37
 ```
 
 `finyahoo quote 005930.KS`는 장 마감 후의 실시간 시세 스냅샷을 보여주며, 국내 거래소 종목이므로 프리마켓·애프터마켓 필드는 없습니다.

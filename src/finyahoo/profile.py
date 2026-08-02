@@ -28,7 +28,8 @@ from .payload import as_str, first_dict, unwrap_raw, unwrap_raw_int, unwrap_resu
 # The modules this reader asks for and knows how to read. Kept here so the client
 # requests exactly what ``parse_profile`` consumes -- one list, not two that drift.
 # quoteType carries the name; assetProfile the sector/industry; summaryDetail and
-# defaultKeyStatistics the size and valuation; financialData the growth/margins.
+# defaultKeyStatistics the size and valuation; financialData the growth/margins and
+# the sell-side analyst target range and rating.
 PROFILE_MODULES = (
     "quoteType",
     "assetProfile",
@@ -43,8 +44,10 @@ class Profile:
     """A company's current fundamentals, as far as Yahoo carries them.
 
     The fundamentals view: sector and industry, size (market cap, shares), the
-    valuation multiples, and the growth, margin, and return figures. The live price
-    snapshot is ``Quote``'s domain, read with ``quote``, not carried here.
+    valuation multiples, the growth, margin, and return figures, and the sell-side
+    analyst consensus (target-price range, mean rating, and how many opinions back
+    it). The live price snapshot is ``Quote``'s domain, read with ``quote``, not
+    carried here.
 
     Every field but ``symbol`` is optional: Yahoo omits what it does not have for a
     given security, and the absence is ``None`` (never 0 -- 0 is a real reading).
@@ -72,6 +75,16 @@ class Profile:
     fifty_two_week_high: float | None = None
     fifty_two_week_low: float | None = None
     beta: float | None = None
+    # Sell-side analyst consensus (financialData): the target-price range and the
+    # rating. target_median_price and recommendation may be absent where the mean
+    # ones are present; analyst_count is how many opinions the range is built from.
+    target_high_price: float | None = None
+    target_low_price: float | None = None
+    target_mean_price: float | None = None
+    target_median_price: float | None = None
+    recommendation_mean: float | None = None
+    recommendation: str | None = None
+    analyst_count: int | None = None
 
 
 def parse_profile(payload: str, symbol: str) -> Profile:
@@ -120,4 +133,11 @@ def parse_profile(payload: str, symbol: str) -> Profile:
         fifty_two_week_high = unwrap_raw(modules.get("fiftyTwoWeekHigh")),
         fifty_two_week_low  = unwrap_raw(modules.get("fiftyTwoWeekLow")),
         beta                = unwrap_raw(modules.get("beta")),
+        target_high_price   = unwrap_raw(modules.get("targetHighPrice")),
+        target_low_price    = unwrap_raw(modules.get("targetLowPrice")),
+        target_mean_price   = unwrap_raw(modules.get("targetMeanPrice")),
+        target_median_price = unwrap_raw(modules.get("targetMedianPrice")),
+        recommendation_mean = unwrap_raw(modules.get("recommendationMean")),
+        recommendation      = as_str(modules.get("recommendationKey")),
+        analyst_count       = unwrap_raw_int(modules.get("numberOfAnalystOpinions")),
     )

@@ -36,7 +36,14 @@ _FULL = """
     "earningsGrowth": {"raw": 0.218},
     "profitMargins": {"raw": 0.21459},
     "operatingMargins": {"raw": 0.42751},
-    "returnOnEquity": {"raw": 0.18855}
+    "returnOnEquity": {"raw": 0.18855},
+    "targetHighPrice": {"raw": 725000.0},
+    "targetLowPrice": {"raw": 210000.0},
+    "targetMeanPrice": {"raw": 470630.3},
+    "targetMedianPrice": {"raw": 450000.0},
+    "recommendationMean": {"raw": 1.4},
+    "recommendationKey": "strong_buy",
+    "numberOfAnalystOpinions": {"raw": 37}
   }
 }]}}
 """
@@ -61,6 +68,51 @@ def test_parses_name_sector_and_the_growth_and_margin_figures():
     assert profile.sector == "Technology"
     assert profile.revenue_growth == pytest.approx(0.692)
     assert profile.operating_margin == pytest.approx(0.42751)
+
+
+def test_parses_the_analyst_target_range_and_rating():
+    profile = parse_profile(_FULL, "005930.KS")
+    assert profile.target_high_price == pytest.approx(725000.0)
+    assert profile.target_low_price == pytest.approx(210000.0)
+    assert profile.target_mean_price == pytest.approx(470630.3)
+    assert profile.target_median_price == pytest.approx(450000.0)
+    assert profile.recommendation_mean == pytest.approx(1.4)
+    assert profile.recommendation == "strong_buy"
+    assert profile.analyst_count == 37
+
+
+def test_analyst_fields_are_none_when_financialData_is_absent():
+    """An index has no financialData, so the whole analyst consensus is absent, not 0
+    -- every one of the seven fields, not just the three spot-checked before."""
+    profile = parse_profile(_INDEX, "^GSPC")
+    assert profile.target_high_price is None
+    assert profile.target_low_price is None
+    assert profile.target_mean_price is None
+    assert profile.target_median_price is None
+    assert profile.recommendation_mean is None
+    assert profile.recommendation is None
+    assert profile.analyst_count is None
+
+
+def test_one_absent_target_key_is_none_while_its_siblings_parse():
+    """The analyst fields are independently optional: a missing targetHighPrice must
+    not drag its siblings to None -- each comes from its own financialData key."""
+    payload = json.loads(_FULL)
+    del payload["quoteSummary"]["result"][0]["financialData"]["targetHighPrice"]
+    profile = parse_profile(json.dumps(payload), "005930.KS")
+    assert profile.target_high_price is None
+    assert profile.target_low_price == pytest.approx(210000.0)
+    assert profile.recommendation == "strong_buy"
+
+
+def test_an_analyst_field_present_as_an_empty_box_is_none_not_zero():
+    """A boxed analyst field left as {} is "present but unset" -- None, not 0 -- and a
+    sibling on the same module still parses."""
+    payload = json.loads(_FULL)
+    payload["quoteSummary"]["result"][0]["financialData"]["targetHighPrice"] = {}
+    profile = parse_profile(json.dumps(payload), "005930.KS")
+    assert profile.target_high_price is None
+    assert profile.analyst_count == 37
 
 
 def test_a_boxed_value_is_unwrapped_to_its_raw_number():
