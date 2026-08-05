@@ -240,8 +240,11 @@ codex plugin add finyahoo@finyahoo
 플러그인 없이 쓰려면? 스킬을 스킬 디렉터리에 symlink해 bare 형식(`/history`)으로 부르세요:
 
 ```sh
-ln -s "$PWD/plugins/finyahoo/skills/history" ~/.claude/skills/history
+ln -s "$PWD/plugins/finyahoo/skills/history" ~/.claude/skills/history   # Claude Code → /history
+ln -s "$PWD/plugins/finyahoo/skills/history" ~/.codex/skills/history    # Codex → $finyahoo:history
 ```
+
+Claude Code는 바로 인식하고, Codex는 재시작해야 로딩됩니다.
 
 ## 8. 라이선스
 

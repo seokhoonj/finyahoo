@@ -249,8 +249,11 @@ The `history` / `profile` / `quote` skills trigger on a symbol, or run
 Prefer no plugin? Symlink a skill into your skills directory and call it bare (`/history`):
 
 ```sh
-ln -s "$PWD/plugins/finyahoo/skills/history" ~/.claude/skills/history
+ln -s "$PWD/plugins/finyahoo/skills/history" ~/.claude/skills/history   # Claude Code -> /history
+ln -s "$PWD/plugins/finyahoo/skills/history" ~/.codex/skills/history    # Codex -> $finyahoo:history
 ```
+
+Claude Code picks it up immediately; Codex needs a restart to load it.
 
 ## 8. License
 
