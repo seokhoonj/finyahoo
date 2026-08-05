@@ -1,11 +1,11 @@
 {
   "name": "finyahoo",
   "displayName": "finyahoo",
-  "description": "Read Yahoo Finance prices and fundamentals from the command line, powered by the finyahoo CLI",
-  "version": "0.2.0",
+  "description": "Read Yahoo Finance prices, fundamentals, analyst consensus, news, and symbol lookups from the command line, powered by the finyahoo CLI",
+  "version": "0.2.1",
   "author": { "name": "seokhoonj" },
   "homepage": "https://github.com/seokhoonj/finyahoo",
   "repository": "https://github.com/seokhoonj/finyahoo",
   "license": "MIT",
-  "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals"]
+  "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals", "consensus", "news"]
 }

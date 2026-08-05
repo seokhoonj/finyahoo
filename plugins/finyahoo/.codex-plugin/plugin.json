@@ -1,20 +1,20 @@
 {
   "name": "finyahoo",
-  "version": "0.2.0",
-  "description": "Read Yahoo Finance prices and fundamentals from the command line, powered by the finyahoo CLI",
+  "version": "0.2.1",
+  "description": "Read Yahoo Finance prices, fundamentals, analyst consensus, news, and symbol lookups from the command line, powered by the finyahoo CLI",
   "author": { "name": "seokhoonj", "url": "https://github.com/seokhoonj" },
   "homepage": "https://github.com/seokhoonj/finyahoo",
   "repository": "https://github.com/seokhoonj/finyahoo",
   "license": "MIT",
-  "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals"],
+  "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals", "consensus", "news"],
   "skills": "./skills/",
   "interface": {
     "displayName": "finyahoo",
     "shortDescription": "Read Yahoo Finance prices and fundamentals",
-    "longDescription": "Fetch a symbol's OHLCV price history, its company fundamentals (profile), or its live price snapshot (quote) from Yahoo Finance via the finyahoo CLI. Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC).",
+    "longDescription": "Fetch a symbol's OHLCV price history, company fundamentals (profile), live price snapshot (quote), sell-side analyst consensus (consensus), or related news (news) from Yahoo Finance via the finyahoo CLI, and resolve a company name to Yahoo tickers (match). Works for US stocks (AAPL), Korean tickers (005930.KS), and indices (^GSPC).",
     "developerName": "seokhoonj",
     "category": "Productivity",
     "capabilities": [],
-    "defaultPrompt": ["Get the price history for AAPL", "Show the profile for ^GSPC", "What's MU trading at?"]
+    "defaultPrompt": ["Get the price history for AAPL", "Show the profile for ^GSPC", "What's MU trading at?", "What's the analyst consensus on MU?", "Any news on Micron?"]
   }
 }

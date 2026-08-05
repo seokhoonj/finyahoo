@@ -1,17 +1,17 @@
 {
   "name": "finyahoo",
   "owner": { "name": "seokhoonj" },
-  "description": "Read prices and fundamentals from Yahoo Finance",
+  "description": "Read prices, fundamentals, analyst consensus, news, and symbol lookups from Yahoo Finance",
   "plugins": [
     {
       "name": "finyahoo",
       "displayName": "finyahoo",
       "source": "./plugins/finyahoo",
-      "description": "Read prices and fundamentals from Yahoo Finance",
+      "description": "Read prices, fundamentals, analyst consensus, news, and symbol lookups from Yahoo Finance",
       "author": { "name": "seokhoonj" },
       "homepage": "https://github.com/seokhoonj/finyahoo",
       "category": "Productivity",
-      "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals"]
+      "keywords": ["yahoo", "finance", "stocks", "prices", "fundamentals", "consensus", "news"]
     }
   ]
 }

@@ -51,7 +51,7 @@ field is optional -- a missing one is null, never `0`.
 4. **Error handling.** When the CLI exits non-zero, relay the one-line `finyahoo: <message>`
    from stderr as-is:
    - `command not found: finyahoo` -> not installed; point the user at `pipx install finyahoo`.
-   - `Not Found` -> a delisted or unknown ticker.
+   - a `...quoteSummary/<sym> returned 404` message -> a delisted or unknown ticker.
    - a 429 / refusing-this-client message -> Yahoo is rate-limiting; wait and retry.
 
 ## What this skill does not do
