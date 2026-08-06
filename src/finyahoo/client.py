@@ -173,6 +173,7 @@ class YahooClient:
             YahooRequestError: the request failed, or the symbol has no data.
             YahooParseError: the payload was not the chart shape.
         """
+        symbol = _normalize_symbol(symbol)
         start = _as_date(start)
         end = _as_date(end)
         if start is not None and end is not None and start > end:
@@ -200,6 +201,7 @@ class YahooClient:
             YahooRequestError: the request failed, or the symbol is unknown.
             YahooParseError: the payload was not the quoteSummary shape.
         """
+        symbol = _normalize_symbol(symbol)
         url = _SUMMARY_URL.format(symbol=quote(symbol, safe=""))
         return parse_profile(self._get_crumbed(url, {"modules": ",".join(PROFILE_MODULES)}), symbol)
 
@@ -216,7 +218,7 @@ class YahooClient:
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the quoteResponse shape.
         """
-        text = self._get_crumbed(_QUOTE_URL, {"symbols": _join_values(symbols)})
+        text = self._get_crumbed(_QUOTE_URL, {"symbols": _join_values(_normalize_symbols(symbols))})
         return parse_quotes(text)
 
     def fetch_search(self, query: str, *, quotes_count: int = 6,
@@ -253,7 +255,7 @@ class YahooClient:
             YahooParseError: the payload was not the spark shape.
         """
         text = self._get(_SPARK_URL, params={
-            "symbols": _join_values(symbols), "range": period, "interval": interval,
+            "symbols": _join_values(_normalize_symbols(symbols)), "range": period, "interval": interval,
         }).text
         return parse_spark(text)
 
@@ -275,6 +277,7 @@ class YahooClient:
             YahooRequestError: the request failed.
             YahooParseError: the payload was not the timeseries shape.
         """
+        symbol = _normalize_symbol(symbol)
         start = _as_date(start)
         end = _as_date(end)
         if start is not None and end is not None and start > end:
@@ -305,6 +308,7 @@ class YahooClient:
             YahooRequestError: the request failed, or the symbol is unknown.
             YahooParseError: the payload was not the optionChain shape.
         """
+        symbol = _normalize_symbol(symbol)
         url = _OPTIONS_URL.format(symbol=quote(symbol, safe=""))
         expiry = _as_date(expiration)
         params = {} if expiry is None else {"date": _to_epoch(expiry)}
@@ -320,6 +324,7 @@ class YahooClient:
             YahooRequestError: the request failed, or the symbol is unknown.
             YahooParseError: the payload was not the expected shape.
         """
+        symbol = _normalize_symbol(symbol)
         text = self._get(_RECOMMEND_URL.format(symbol=quote(symbol, safe=""))).text
         return parse_recommendations(text, symbol)
 
@@ -335,6 +340,7 @@ class YahooClient:
             YahooRequestError: the request failed, or the symbol is unknown.
             YahooParseError: the payload was not the insights shape.
         """
+        symbol = _normalize_symbol(symbol)
         return parse_insights(self._get_crumbed(_INSIGHTS_URL, {"symbol": symbol}), symbol)
 
     def fetch_consensus(self, symbol: str) -> Consensus:
@@ -353,6 +359,7 @@ class YahooClient:
             YahooRequestError: the request failed, or the symbol is unknown.
             YahooParseError: the payload was not the quoteSummary shape.
         """
+        symbol = _normalize_symbol(symbol)
         url = _SUMMARY_URL.format(symbol=quote(symbol, safe=""))
         return parse_consensus(
             self._get_crumbed(url, {"modules": ",".join(CONSENSUS_MODULES)}), symbol)
@@ -498,3 +505,26 @@ def _join_values(values: str | Sequence[str]) -> str:
     if not values:
         raise ValueError("at least one value is required")
     return values if isinstance(values, str) else ",".join(values)
+
+
+def _normalize_symbol(symbol: str) -> str:
+    """Canonicalize one Yahoo ticker to its uppercase form.
+
+    Yahoo tickers are uppercase in every part -- the root (``MU``), a class suffix
+    (``BRK-B``), an exchange suffix (``005930.KS``), and the index and crypto forms
+    (``^GSPC``, ``BTC-USD``). No Yahoo ticker carries a meaningful lowercase letter,
+    so uppercasing turns user input like ``mu`` into ``MU`` without ever changing
+    which symbol is meant -- and it makes the ``symbol`` field on the returned
+    dataclass canonical rather than an echo of however the caller typed it (Yahoo's
+    quoteSummary payload does not carry the symbol back, so profile reads this one).
+    Surrounding whitespace is stripped so a stray space never reaches the request.
+    """
+    return symbol.strip().upper()
+
+
+def _normalize_symbols(symbols: str | Sequence[str]) -> str | tuple[str, ...]:
+    """Uppercase-normalize one ticker or a sequence of them, preserving the shape
+    so the empty-input guard in ``_join_values`` still fires."""
+    if isinstance(symbols, str):
+        return _normalize_symbol(symbols)
+    return tuple(_normalize_symbol(s) for s in symbols)

@@ -437,3 +437,46 @@ def test_fetch_timeseries_with_start_after_end_is_a_value_error():
     with pytest.raises(ValueError):
         _client(_FakeSession()).fetch_timeseries(
             "AAPL", ["annualTotalRevenue"], start=date(2020, 1, 2), end=date(2020, 1, 1))
+
+
+def test_normalize_symbol_uppercases_every_ticker_shape():
+    """A Yahoo ticker is canonically uppercase in every part, so normalization is a
+    plain uppercase (plus a whitespace strip) that never changes which symbol is meant."""
+    from finyahoo.client import _normalize_symbol
+    assert _normalize_symbol("mu") == "MU"
+    assert _normalize_symbol("MU") == "MU"            # already canonical, unchanged
+    assert _normalize_symbol("005930.ks") == "005930.KS"
+    assert _normalize_symbol("brk-b") == "BRK-B"
+    assert _normalize_symbol("^gspc") == "^GSPC"
+    assert _normalize_symbol("  aapl ") == "AAPL"      # stray whitespace stripped
+
+
+def test_normalize_symbols_preserves_str_vs_sequence_shape():
+    """One ticker stays a str; a sequence stays a sequence -- so the empty-input guard
+    in _join_values still fires and a bare str is never split into characters."""
+    from finyahoo.client import _normalize_symbols
+    assert _normalize_symbols("mu") == "MU"
+    assert _normalize_symbols(["mu", "aapl"]) == ("MU", "AAPL")
+
+
+def test_fetch_profile_canonicalizes_a_lowercase_symbol():
+    """A lowercase input like ``mu`` comes back as ``MU`` on the result and is sent
+    uppercased in the request -- the symbol field is Yahoo's canonical ticker, not an
+    echo of however the caller typed it."""
+    session = _FakeSession(
+        _FakeResponse(404, ""), _FakeResponse(200, "crumb"),
+        _FakeResponse(200, _PROFILE_JSON),
+    )
+    profile = _client(session).fetch_profile("mu")
+    assert profile.symbol == "MU"
+    assert session.calls[-1]["url"].endswith("/v10/finance/quoteSummary/MU")
+
+
+def test_fetch_quotes_sends_uppercased_symbols():
+    """The multi-symbol path normalizes too, without disturbing the empty-input guard."""
+    session = _FakeSession(
+        _FakeResponse(404, ""), _FakeResponse(200, "crumb"),
+        _FakeResponse(200, _QUOTE_JSON),
+    )
+    _client(session).fetch_quotes("aapl")
+    assert session.calls[-1]["params"]["symbols"] == "AAPL"
