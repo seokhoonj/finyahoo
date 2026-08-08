@@ -227,6 +227,8 @@ so install the package first (above); no key or login is involved.
 
 ### 7.1. Claude Code
 
+In the Claude Code chat, add the marketplace and install:
+
 ```
 /plugin marketplace add seokhoonj/finyahoo
 /plugin install finyahoo@finyahoo
@@ -237,6 +239,8 @@ skill explicitly — `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`,
 `/finyahoo:quote MU`.
 
 ### 7.2. Codex
+
+In your terminal, add the marketplace and install:
 
 ```
 codex plugin marketplace add seokhoonj/finyahoo

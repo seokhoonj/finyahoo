@@ -219,6 +219,8 @@ HNX3.L     EQUITY  London        None        LEVERAGE SHARES PUBLIC LIMITED
 
 ### 7.1. Claude Code
 
+Claude Code 채팅창에서 마켓플레이스를 추가하고 설치합니다:
+
 ```
 /plugin marketplace add seokhoonj/finyahoo
 /plugin install finyahoo@finyahoo
@@ -228,6 +230,8 @@ HNX3.L     EQUITY  London        None        LEVERAGE SHARES PUBLIC LIMITED
 호출하세요 — `/finyahoo:history ^GSPC`, `/finyahoo:profile AAPL`, `/finyahoo:quote MU`.
 
 ### 7.2. Codex
+
+터미널에서 마켓플레이스를 추가하고 설치합니다:
 
 ```
 codex plugin marketplace add seokhoonj/finyahoo
