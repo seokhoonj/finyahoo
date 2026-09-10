@@ -252,4 +252,4 @@ Claude Code는 바로 인식하고, Codex는 재시작해야 로딩됩니다.
 
 ## 8. 라이선스
 
-MIT
+[MIT](LICENSE)

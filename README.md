@@ -261,4 +261,4 @@ Claude Code picks it up immediately; Codex needs a restart to load it.
 
 ## 8. License
 
-MIT
+[MIT](LICENSE)
